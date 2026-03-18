@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'c:/Users/USER/OneDrive/PC Programacion/Trabajo/MansaOferta/stack' -maxdepth 3 -not -path */.git/*)"
+    ]
+  }
+}

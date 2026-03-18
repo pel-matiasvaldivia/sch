@@ -1,0 +1,52 @@
+# ─── Secretos / Configuración ───
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
+infra/nginx/ssl/
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+htmlcov/
+.coverage
+coverage.xml
+
+# ─── Node / Next.js ───
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log
+
+# ─── Docker ───
+# No ignorar los Dockerfiles
+
+# ─── Editors ───
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Logs ───
+*.log
+logs/
+
+# ─── Alembic ───
+backend/alembic/versions/*.py
+# Mantener solo la migración inicial:
+!backend/alembic/versions/0001_initial_schema.py

@@ -1,0 +1,65 @@
+version: "3.9"
+
+services:
+  postgres:
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+  redis:
+    restart: always
+
+  elasticsearch:
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx1g
+
+  minio:
+    restart: always
+    ports: []  # No expose console in prod
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    volumes: []  # No source mount in prod
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    volumes: []
+
+  flower:
+    profiles: ["monitoring"]  # Only start with --profile monitoring
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+    volumes: []  # No source mount, serve from build output
+
+  nginx:
+    volumes:
+      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+      - certbot_www:/var/www/certbot:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  certbot_www:
