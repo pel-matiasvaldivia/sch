@@ -19,10 +19,10 @@ CMD ["npm", "run", "dev"]
 # ─── Stage: Builder ───
 FROM base AS builder
 
-ENV NODE_ENV=production
-
 COPY package*.json ./
 RUN npm install && npm cache clean --force
+
+ENV NODE_ENV=production
 
 COPY . .
 RUN npm run build
