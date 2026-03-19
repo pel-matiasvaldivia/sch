@@ -14,7 +14,7 @@ services:
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,16 +26,13 @@ services:
     container_name: hema_redis
     restart: unless-stopped
     command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD}
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru
+      redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -55,7 +52,7 @@ services:
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'" ]
       interval: 20s
       timeout: 10s
       retries: 10
@@ -75,9 +72,9 @@ services:
     networks:
       - backend-net
     ports:
-      - "9001:9001"  # MinIO console (dev only)
+      - "9001:9001" # MinIO console (dev only)
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -100,7 +97,7 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8888:8000"
     networks:
       - backend-net
     depends_on:
@@ -110,7 +107,7 @@ services:
         condition: service_healthy
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -199,7 +196,7 @@ services:
       - backend
       - frontend
     healthcheck:
-      test: ["CMD", "nginx", "-t"]
+      test: [ "CMD", "nginx", "-t" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -209,6 +206,7 @@ volumes:
   redis_data:
   elasticsearch_data:
   minio_data:
+
 
 networks:
   backend-net:
