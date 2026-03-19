@@ -10,7 +10,7 @@ ENV NODE_ENV=development
 FROM base AS development
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 EXPOSE 3000
@@ -22,7 +22,7 @@ FROM base AS builder
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install && npm cache clean --force
 
 COPY . .
 RUN npm run build

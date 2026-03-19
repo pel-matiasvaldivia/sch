@@ -13,7 +13,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.config import get_settings
-from app.db.base import Base  # noqa: F401 — importa todos los modelos
+from app.db.base import Base
+import app.db.all_models  # noqa: F401 — registra todos los modelos para autogenerate
 
 # Interpretar el archivo ini de Alembic para logging
 config = context.config

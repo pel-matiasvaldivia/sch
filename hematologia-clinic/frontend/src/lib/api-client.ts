@@ -3,7 +3,7 @@
  * Todas las llamadas al backend pasan por aquí.
  */
 
-const API_BASE = "/api/backend";
+const API_BASE = "/api";
 
 class ApiError extends Error {
   constructor(

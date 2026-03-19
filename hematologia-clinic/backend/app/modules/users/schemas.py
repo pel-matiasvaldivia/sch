@@ -56,6 +56,18 @@ class UserRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @field_validator("roles", mode="before")
+    @classmethod
+    def extract_roles(cls, v):
+        """Extrae el Role de cada UserRole (tabla de unión)."""
+        result = []
+        for item in v:
+            if hasattr(item, "role"):  # Es un UserRole
+                result.append(item.role)
+            else:
+                result.append(item)
+        return result
+
     @property
     def role_names(self) -> List[str]:
         return [r.name for r in self.roles]

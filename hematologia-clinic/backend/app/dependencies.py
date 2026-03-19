@@ -1,9 +1,9 @@
 """
 Dependencies compartidas de FastAPI para toda la aplicación.
 """
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,12 +14,14 @@ from app.db.session import get_db
 # Re-exportar get_db para conveniencia
 DBDep = Annotated[AsyncSession, Depends(get_db)]
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    request: Request,
+    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security)],
     db: DBDep,
+    access_token: Annotated[Optional[str], Cookie()] = None,
 ):
     """
     Dependency que extrae y valida el usuario del JWT.
@@ -33,8 +35,18 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    # Acepta token desde header Authorization o desde cookie httpOnly
+    token = None
+    if credentials:
+        token = credentials.credentials
+    elif access_token:
+        token = access_token
+
+    if not token:
+        raise credentials_exception
+
     try:
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
         user_id: str = payload.get("sub")
         token_type: str = payload.get("type")
 
@@ -71,7 +83,7 @@ def require_roles(*roles: str):
     async def _check_roles(
         current_user=Depends(get_current_user),
     ):
-        user_roles = {r.name for r in current_user.roles}
+        user_roles = set(current_user.role_names)
         if not user_roles.intersection(set(roles)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

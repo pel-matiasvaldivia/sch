@@ -60,6 +60,7 @@ export function useCreatePatient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: PatientCreate) => api.post<Patient>("/v1/patients/", data),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
     },

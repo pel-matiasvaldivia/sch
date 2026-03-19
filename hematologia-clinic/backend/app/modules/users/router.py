@@ -20,7 +20,7 @@ router = APIRouter(prefix="/v1/users", tags=["Usuarios"])
 DBDep = Annotated[AsyncSession, Depends(get_db)]
 
 
-@router.get("/", response_model=UserList)
+@router.get("", response_model=UserList)
 async def list_users(
     db: DBDep,
     page: int = Query(1, ge=1),
@@ -34,7 +34,7 @@ async def list_users(
     return await service.list_users(page, size, search, role)
 
 
-@router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(
     data: UserCreate,
     db: DBDep,

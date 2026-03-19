@@ -10,6 +10,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import get_settings
 from app.exceptions import register_exception_handlers
+import app.db.all_models  # noqa: F401 — registra todos los modelos antes de configurar mappers
 
 settings = get_settings()
 
@@ -34,13 +35,17 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠ MinIO no disponible en startup: {e}")
 
-    # Inicializar roles del sistema
-    from app.db.session import AsyncSessionLocal
-    async with AsyncSessionLocal() as db:
-        from app.modules.users.service import UserService
-        service = UserService(db)
-        await service.initialize_system_roles()
-        await db.commit()
+    # Inicializar roles del sistema (solo si las tablas ya existen)
+    try:
+        from app.db.session import AsyncSessionLocal
+        async with AsyncSessionLocal() as db:
+            from app.modules.users.service import UserService
+            service = UserService(db)
+            await service.initialize_system_roles()
+            await db.commit()
+        print("✓ Roles del sistema inicializados")
+    except Exception as e:
+        print(f"⚠ No se pudieron inicializar roles (¿migraciones pendientes?): {e}")
 
     print(f"✓ {settings.APP_NAME} v{settings.APP_VERSION} iniciado ({settings.APP_ENV})")
 
@@ -61,6 +66,7 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.is_development else None,
         openapi_url="/openapi.json" if settings.is_development else None,
         lifespan=lifespan,
+        redirect_slashes=False,
     )
 
     # ─── Middleware ───
@@ -85,10 +91,12 @@ def create_app() -> FastAPI:
     from app.modules.auth.router import router as auth_router
     from app.modules.users.router import router as users_router
     from app.modules.patients.router import router as patients_router
+    from app.modules.appointments.router import router as appointments_router
 
     app.include_router(auth_router)
     app.include_router(users_router)
     app.include_router(patients_router)
+    app.include_router(appointments_router)
 
     # Los siguientes módulos se agregan conforme se implementan:
     # from app.modules.appointments.router import router as appointments_router
