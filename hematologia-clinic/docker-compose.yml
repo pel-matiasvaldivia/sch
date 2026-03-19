@@ -84,6 +84,7 @@ services:
 
   # ─────────────────── BACKEND ───────────────────
   backend:
+    image: hema-backend:local
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -117,6 +118,7 @@ services:
 
   # ─────────────────── ASYNC WORKER ───────────────────
   worker:
+    image: hema-worker:local
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -139,6 +141,7 @@ services:
 
   # ─────────────────── CELERY MONITOR (dev) ───────────────────
   flower:
+    image: hema-flower:local
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -161,6 +164,7 @@ services:
 
   # ─────────────────── FRONTEND ───────────────────
   frontend:
+    image: hema-frontend:local
     build:
       context: ./frontend
       dockerfile: Dockerfile
