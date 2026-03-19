@@ -3,25 +3,39 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = process.env.BACKEND_URL || "http://backend:8000";
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  const backendResponse = await fetch(`${BACKEND_URL}/v1/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+    let backendResponse;
+    try {
+      backendResponse = await fetch(`${BACKEND_URL}/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (fetchError: any) {
+      console.error("Backend fetch failed:", fetchError);
+      return NextResponse.json({ detail: "No se pudo conectar con el servidor backend.", error: fetchError.message }, { status: 502 });
+    }
 
-  const data = await backendResponse.json();
+    const text = await backendResponse.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError: any) {
+      console.error("Invalid JSON from backend:", text);
+      return NextResponse.json({ detail: "Respuesta inválida del servidor backend.", html: text.substring(0, 200) }, { status: backendResponse.status || 500 });
+    }
 
-  if (!backendResponse.ok) {
-    return NextResponse.json(data, { status: backendResponse.status });
-  }
+    if (!backendResponse.ok) {
+      return NextResponse.json(data, { status: backendResponse.status });
+    }
 
-  // Setear tokens en cookies httpOnly para prevenir XSS
-  const response = NextResponse.json({
-    user: data.user,
-    expires_in: data.expires_in,
-  });
+    // Setear tokens en cookies httpOnly para prevenir XSS
+    const response = NextResponse.json({
+      user: data.user,
+      expires_in: data.expires_in,
+    });
 
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -54,4 +68,8 @@ export async function POST(request: NextRequest) {
   });
 
   return response;
+  } catch (error: any) {
+    console.error("Internal API error:", error);
+    return NextResponse.json({ detail: "Error interno del servidor", error: error.message }, { status: 500 });
+  }
 }
