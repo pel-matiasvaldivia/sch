@@ -12,6 +12,7 @@ from app.db.mixins import SoftDeleteMixin, TimestampMixin, UUIDMixin
 
 if TYPE_CHECKING:
     from app.modules.patients.models import Patient
+    from app.modules.users.models import User
 
 
 class AppointmentStatus(str, enum.Enum):
@@ -80,3 +81,4 @@ class Appointment(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
 
     # Relaciones
     patient: Mapped["Patient"] = relationship("Patient", back_populates="appointments")
+    doctor: Mapped["User"] = relationship("User", foreign_keys=[doctor_id])

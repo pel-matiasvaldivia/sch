@@ -46,7 +46,8 @@ Thumbs.db
 *.log
 logs/
 
+# ─── Claude ───
+.claude/
+
 # ─── Alembic ───
-backend/alembic/versions/*.py
-# Mantener solo la migración inicial:
-!backend/alembic/versions/0001_initial_schema.py
+# Las migraciones SÍ se versionan
