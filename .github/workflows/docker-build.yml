@@ -43,8 +43,8 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./hematologia-clinic/backend
+          file: ./hematologia-clinic/backend/Dockerfile
           target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -85,8 +85,8 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: ./hematologia-clinic/frontend
+          file: ./hematologia-clinic/frontend/Dockerfile
           target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
