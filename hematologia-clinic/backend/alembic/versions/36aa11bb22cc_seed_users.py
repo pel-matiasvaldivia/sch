@@ -84,7 +84,7 @@ def upgrade() -> None:
                     "full_name": full_name,
                     "is_active": True,
                     "is_email_verified": True,
-                    "must_change_password": True, # Forzar cambio de clave
+                    "must_change_password": False, # Desactivado por ahora
                     "totp_enabled": False,
                     "failed_login_attempts": 0,
                     "created_at": now,

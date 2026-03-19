@@ -52,12 +52,7 @@ export function LoginForm() {
 
       setUser(result.user);
       toast.success(`Bienvenido/a, ${result.user.full_name}`);
-
-      if (result.user.must_change_password) {
-        router.push("/dashboard/profile/change-password");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/dashboard");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al iniciar sesión");
     } finally {
