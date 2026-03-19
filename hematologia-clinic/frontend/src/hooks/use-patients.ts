@@ -20,7 +20,7 @@ export const patientKeys = {
   search: (q: string) => [...patientKeys.all, "search", q] as const,
 };
 
-interface ListPatientsParams {
+type ListPatientsParams = {
   page?: number;
   size?: number;
   search?: string;
