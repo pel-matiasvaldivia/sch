@@ -34,6 +34,30 @@ export function useAuth() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { current_password: string; new_password: string }) => {
+      const resp = await fetch("/api/v1/users/me/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({ detail: "Error desconocido" }));
+        throw new Error(errorData.detail || "Error al cambiar la contraseña");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Contraseña actualizada correctamente");
+      if (user) {
+        setUser({ ...user, must_change_password: false });
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   return {
     user,
     isLoading,
@@ -41,6 +65,8 @@ export function useAuth() {
     login: loginMutation.mutateAsync,
     isLoginLoading: loginMutation.isPending,
     loginError: loginMutation.error,
+    changePassword: changePasswordMutation.mutateAsync,
+    isChangePasswordLoading: changePasswordMutation.isPending,
     logout,
     hasRole,
     hasAnyRole,
