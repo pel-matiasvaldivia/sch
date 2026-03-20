@@ -34,10 +34,12 @@ ALLOWED_TRANSITIONS = {
     AppointmentStatus.IN_PROGRESS: {
         AppointmentStatus.PRESENT,
         AppointmentStatus.ABSENT,
+        AppointmentStatus.CONCLUDED,
     },
-    AppointmentStatus.PRESENT: set(),
+    AppointmentStatus.PRESENT: {AppointmentStatus.IN_PROGRESS},
     AppointmentStatus.ABSENT: set(),
     AppointmentStatus.CANCELLED: set(),
+    AppointmentStatus.CONCLUDED: set(),
 }
 
 

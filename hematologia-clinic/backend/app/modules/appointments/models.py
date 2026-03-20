@@ -22,6 +22,7 @@ class AppointmentStatus(str, enum.Enum):
     ABSENT = "ausente"
     CANCELLED = "cancelado"
     IN_PROGRESS = "en_progreso"
+    CONCLUDED = "concluido"
 
 
 class ServiceType(str, enum.Enum):

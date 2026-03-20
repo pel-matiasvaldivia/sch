@@ -37,7 +37,7 @@ async def search_patients(
     return await service.search_patients(q, limit)
 
 
-@router.get("", response_model=PatientList)
+@router.get("/", response_model=PatientList)
 async def list_patients(
     db: DBDep,
     page: int = Query(1, ge=1),
@@ -52,7 +52,7 @@ async def list_patients(
     return await service.list_patients(page, size, search, insurance_provider, doctor_id)
 
 
-@router.post("", response_model=PatientRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PatientRead, status_code=status.HTTP_201_CREATED)
 async def create_patient(
     data: PatientCreate,
     db: DBDep,

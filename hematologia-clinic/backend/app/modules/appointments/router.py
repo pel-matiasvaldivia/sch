@@ -24,7 +24,7 @@ VIEWER_ROLES = ("admin", "medico", "administrativo", "tecnico")
 EDITOR_ROLES = ("admin", "medico", "administrativo")
 
 
-@router.get("", response_model=AppointmentList)
+@router.get("/", response_model=AppointmentList)
 async def list_appointments(
     db: DBDep,
     page: int = Query(1, ge=1),
@@ -67,7 +67,7 @@ async def get_day_schedule(
     return await service.get_day_schedule(day, doctor_id)
 
 
-@router.post("", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=AppointmentRead, status_code=status.HTTP_201_CREATED)
 async def create_appointment(
     data: AppointmentCreate,
     db: DBDep,
