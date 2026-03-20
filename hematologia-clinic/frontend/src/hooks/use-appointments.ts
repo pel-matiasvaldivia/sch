@@ -20,7 +20,7 @@ export const appointmentKeys = {
   detail: (id: string) => [...appointmentKeys.details(), id] as const,
 };
 
-interface ListAppointmentsParams {
+interface ListAppointmentsParams extends Record<string, unknown> {
   page?: number;
   size?: number;
   patient_id?: string;
@@ -74,7 +74,7 @@ export function useUpdateAppointment(id: string) {
   return useMutation({
     mutationFn: (data: AppointmentUpdate) =>
       api.patch<Appointment>(`/v1/appointments/${id}`, data),
-    onSuccess: (updated) => {
+    onSuccess: (updated: Appointment) => {
       queryClient.setQueryData(appointmentKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.today() });
@@ -87,7 +87,7 @@ export function useUpdateAppointmentStatus(id: string) {
   return useMutation({
     mutationFn: (data: AppointmentStatusUpdate) =>
       api.patch<Appointment>(`/v1/appointments/${id}/status`, data),
-    onSuccess: (updated) => {
+    onSuccess: (updated: Appointment) => {
       queryClient.setQueryData(appointmentKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.today() });
