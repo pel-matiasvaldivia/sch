@@ -112,8 +112,9 @@ export function PatientForm({ mode, patient }: Props) {
         toast.success("Datos actualizados correctamente");
         router.push(`/dashboard/patients/${patient!.id}`);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Error al guardar");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Error al guardar";
+      toast.error(message);
     }
   };
 

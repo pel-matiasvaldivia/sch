@@ -2,13 +2,21 @@
 const nextConfig = {
   output: "standalone",
 
-  // Rewrite /api/backend/* → backend container
-  async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || "http://backend:8000";
+  // Headers de seguridad HTTP
+  async headers() {
     return [
       {
-        source: "/api/backend/:path*",
-        destination: `${backendUrl}/:path*`,
+        source: "/(.*)",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
       },
     ];
   },
@@ -16,14 +24,8 @@ const nextConfig = {
   // Imágenes
   images: {
     remotePatterns: [
-      {
-        protocol: "http",
-        hostname: "localhost",
-      },
-      {
-        protocol: "http",
-        hostname: "minio",
-      },
+      { protocol: "http", hostname: "localhost" },
+      { protocol: "http", hostname: "minio" },
     ],
   },
 

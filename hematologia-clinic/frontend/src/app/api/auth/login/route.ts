@@ -13,16 +13,17 @@ export async function POST(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
+      const message = fetchError instanceof Error ? fetchError.message : "Connection error";
       console.error("Backend fetch failed:", fetchError);
-      return NextResponse.json({ detail: "No se pudo conectar con el servidor backend.", error: fetchError.message }, { status: 502 });
+      return NextResponse.json({ detail: "No se pudo conectar con el servidor backend.", error: message }, { status: 502 });
     }
 
     const text = await backendResponse.text();
-    let data;
+    let data: unknown;
     try {
       data = JSON.parse(text);
-    } catch (parseError: any) {
+    } catch {
       console.error("Invalid JSON from backend:", text);
       return NextResponse.json({ detail: "Respuesta inválida del servidor backend.", html: text.substring(0, 200) }, { status: backendResponse.status || 500 });
     }
@@ -68,8 +69,9 @@ export async function POST(request: NextRequest) {
   });
 
   return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Internal API error:", error);
-    return NextResponse.json({ detail: "Error interno del servidor", error: error.message }, { status: 500 });
+    return NextResponse.json({ detail: "Error interno del servidor", error: message }, { status: 500 });
   }
 }
