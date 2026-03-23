@@ -106,6 +106,9 @@ class Patient(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     reports: Mapped[List["Report"]] = relationship(
         "Report", back_populates="patient", lazy="select"
     )
+    medical_services: Mapped[List["MedicalService"]] = relationship(
+        "MedicalService", back_populates="patient", lazy="select"
+    )
 
     @property
     def full_name(self) -> str:

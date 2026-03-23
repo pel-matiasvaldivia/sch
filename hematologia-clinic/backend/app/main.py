@@ -92,14 +92,15 @@ def create_app() -> FastAPI:
     from app.modules.users.router import router as users_router
     from app.modules.patients.router import router as patients_router
     from app.modules.appointments.router import router as appointments_router
+    from app.modules.services.router import router as services_router
 
     app.include_router(auth_router)
     app.include_router(users_router)
     app.include_router(patients_router)
     app.include_router(appointments_router)
+    app.include_router(services_router)
 
     # Los siguientes módulos se agregan conforme se implementan:
-    # from app.modules.appointments.router import router as appointments_router
     # from app.modules.services.router import router as services_router
     # from app.modules.reports.router import router as reports_router
     # from app.modules.billing.router import router as billing_router

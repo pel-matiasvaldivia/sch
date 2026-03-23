@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAppointments, useUpdateAppointmentStatus, useDeleteAppointment } from "@/hooks/use-appointments";
+import { ApiError } from "@/lib/api-client";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
@@ -192,6 +194,9 @@ export function AppointmentListClient() {
   };
 
   if (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      return <AccessDenied section="los turnos" />;
+    }
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
         Error al cargar los turnos. Intente nuevamente.

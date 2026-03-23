@@ -1,14 +1,19 @@
 """Modelo de prestaciones médicas."""
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import SoftDeleteMixin, TimestampMixin, UUIDMixin
+
+if TYPE_CHECKING:
+    from app.modules.patients.models import Patient
+    from app.modules.appointments.models import Appointment
+    from app.modules.users.models import User
 
 
 class ServiceStatus(str, enum.Enum):
@@ -47,11 +52,16 @@ class MedicalService(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    # Observaciones clínicas
     clinical_observations: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # Datos específicos del subtipo de prestación (valores de lab, protocolo, etc.)
     service_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=dict)
-
-    # Archivos adjuntos (paths de MinIO)
     attachments: Mapped[list | None] = mapped_column(JSONB, nullable=True, default=list)
+
+    # Relaciones
+    patient: Mapped["Patient"] = relationship("Patient", back_populates="medical_services")
+    appointment: Mapped[Optional["Appointment"]] = relationship("Appointment")
+    performed_by: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[performed_by_id]
+    )
+    requested_by: Mapped["User"] = relationship(
+        "User", foreign_keys=[requested_by_id]
+    )

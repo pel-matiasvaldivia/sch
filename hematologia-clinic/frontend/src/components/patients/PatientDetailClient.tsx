@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePatient } from "@/hooks/use-patients";
 import { formatDate, formatDNI, calculateAge, SEX_LABELS } from "@/lib/utils";
+import { ServiceListClient } from "@/components/services/ServiceListClient";
 
 interface Props {
   patientId: string;
@@ -135,15 +136,21 @@ export function PatientDetailClient({ patientId }: Props) {
         </div>
       </div>
 
-      {/* Historial (placeholder) */}
+      {/* Historial de prestaciones */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Historial de Prestaciones</h3>
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          El historial de prestaciones se mostrará aquí cuando se implemente el módulo de Prestaciones.
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-900">Historial de Prestaciones</h3>
+          <Link
+            href={`/dashboard/services/new?patient_id=${patient.id}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Nueva prestación
+          </Link>
         </div>
+        <ServiceListClient patientId={patient.id} />
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ import { usePatients, useDeletePatient } from "@/hooks/use-patients";
 import { formatDate, formatDNI, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Patient } from "@/types/patients";
+import { ApiError } from "@/lib/api-client";
+import { AccessDenied } from "@/components/ui/AccessDenied";
 
 export function PatientListClient() {
   const [page, setPage] = useState(1);
@@ -32,6 +34,9 @@ export function PatientListClient() {
   };
 
   if (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      return <AccessDenied section="esta sección" />;
+    }
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-sm">
         Error al cargar pacientes. Intente nuevamente.
