@@ -33,7 +33,7 @@ export function InvoiceForm({ defaultPatientId }: Props) {
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState(defaultPatientId ?? "");
   const [selectedPatientName, setSelectedPatientName] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const { data: patientResults } = useSearchPatients(patientSearch);
 
@@ -64,18 +64,6 @@ export function InvoiceForm({ defaultPatientId }: Props) {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
-  }
-
-  function selectPatient(id: string, name: string) {
-    setSelectedPatientId(id);
-    setSelectedPatientName(name);
-    setPatientSearch("");
-    setShowSuggestions(false);
-  }
-
-  function clearPatient() {
-    setSelectedPatientId("");
-    setSelectedPatientName("");
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -109,54 +97,44 @@ export function InvoiceForm({ defaultPatientId }: Props) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Paciente <span className="text-red-500">*</span>
         </label>
-        {selectedPatientId ? (
-          <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-gray-50">
-            <span className="flex-1 text-sm text-gray-900">
-              {selectedPatientName}
-            </span>
-            {!defaultPatientId && (
-              <button
-                type="button"
-                onClick={clearPatient}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="relative">
-            <input
-              type="text"
-              value={patientSearch}
-              onChange={(e) => {
-                setPatientSearch(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              placeholder="Buscar por nombre o DNI..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            />
-            {showSuggestions && patientResults && patientResults.items.length > 0 && (
-              <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                {patientResults.items.map((p) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
-                      onClick={() => selectPatient(p.id, p.full_name)}
-                    >
-                      <span className="font-medium">{p.full_name}</span>
-                      <span className="text-gray-400 ml-2">
-                        {p.medical_record_number}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <input
+            type="text"
+            value={selectedPatientName || patientSearch}
+            onChange={(e) => {
+              if (defaultPatientId) return;
+              setPatientSearch(e.target.value);
+              setSelectedPatientName("");
+              setSelectedPatientId("");
+              setShowDropdown(true);
+            }}
+            onFocus={() => !defaultPatientId && setShowDropdown(true)}
+            disabled={!!defaultPatientId}
+            placeholder="Buscar por nombre o DNI..."
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary ${
+              defaultPatientId ? "bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300"
+            }`}
+          />
+          {showDropdown && patientResults?.items && patientResults.items.length > 0 && (
+            <ul className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {patientResults.items.map((p) => (
+                <li
+                  key={p.id}
+                  onClick={() => {
+                    setSelectedPatientId(p.id);
+                    setSelectedPatientName(`${p.full_name} — DNI ${p.dni}`);
+                    setPatientSearch("");
+                    setShowDropdown(false);
+                  }}
+                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                >
+                  <span className="font-medium">{p.full_name}</span>
+                  <span className="text-gray-500 ml-2">DNI {p.dni}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Fechas y obra social */}
