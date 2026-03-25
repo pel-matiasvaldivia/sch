@@ -8,9 +8,11 @@ from app.core.redis_client import get_redis
 from app.db.session import get_db
 from app.dependencies import get_current_user
 from app.modules.auth.schemas import (
+    ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
+    ResetPasswordRequest,
     TokenResponse,
 )
 from app.modules.auth.service import AuthService
@@ -84,3 +86,32 @@ async def logout_all(
 async def get_me(current_user=Depends(get_current_user)):
     """Retorna los datos del usuario autenticado."""
     return UserRead.model_validate(current_user)
+
+
+@router.post("/forgot-password", status_code=204)
+async def forgot_password(
+    data: ForgotPasswordRequest,
+    db=Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    Solicita recuperación de contraseña.
+    Envía un email con un enlace válido por 1 hora.
+    Siempre retorna 204 para no revelar si el email existe.
+    """
+    service = AuthService(db, redis)
+    await service.forgot_password(data.email)
+
+
+@router.post("/reset-password", status_code=204)
+async def reset_password(
+    data: ResetPasswordRequest,
+    db=Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    """
+    Restablece la contraseña usando el token recibido por email.
+    El token es de uso único y expira en 1 hora.
+    """
+    service = AuthService(db, redis)
+    await service.reset_password(data.token, data.new_password)

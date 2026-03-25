@@ -1,7 +1,7 @@
 """Schemas de autenticación."""
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
@@ -36,3 +36,12 @@ class LogoutRequest(BaseModel):
 
 
 TokenResponse.model_rebuild()
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, description="Mínimo 8 caracteres")

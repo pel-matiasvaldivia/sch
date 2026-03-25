@@ -69,8 +69,12 @@ class Settings(BaseSettings):
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_VERIFY_TOKEN: str = ""
 
+    # ─── URLs ───
+    FRONTEND_URL: str = "http://localhost:3000"
+
     # ─── Seguridad ───
     MAX_LOGIN_ATTEMPTS: int = 5
+    PASSWORD_RESET_EXPIRE_MINUTES: int = 60
     LOCKOUT_DURATION_MINUTES: int = 15
     RATE_LIMIT_PER_MINUTE: int = 60
 

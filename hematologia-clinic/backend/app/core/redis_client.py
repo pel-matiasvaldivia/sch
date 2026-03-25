@@ -89,3 +89,25 @@ async def get_failed_login_count(redis: aioredis.Redis, identifier: str) -> int:
     """Obtiene el número de intentos fallidos actuales."""
     val = await redis.get(f"failed_login:{identifier}")
     return int(val) if val else 0
+
+
+# ─── Helpers para recuperación de contraseña ───
+
+async def store_password_reset_token(
+    redis: aioredis.Redis, token: str, user_id: str, ttl_seconds: int = 3600
+) -> None:
+    """Almacena un token de reset de contraseña con TTL."""
+    key = f"pwd_reset:{token}"
+    await redis.setex(key, ttl_seconds, user_id)
+
+
+async def get_password_reset_user_id(
+    redis: aioredis.Redis, token: str
+) -> str | None:
+    """Retorna el user_id asociado al token de reset, o None si no existe/expiró."""
+    return await redis.get(f"pwd_reset:{token}")
+
+
+async def delete_password_reset_token(redis: aioredis.Redis, token: str) -> None:
+    """Elimina el token de reset (uso único)."""
+    await redis.delete(f"pwd_reset:{token}")

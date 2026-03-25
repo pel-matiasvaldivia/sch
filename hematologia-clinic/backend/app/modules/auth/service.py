@@ -1,6 +1,11 @@
-"""Lógica de autenticación: login, refresh, logout, 2FA."""
+"""Lógica de autenticación: login, refresh, logout, 2FA, recuperación de contraseña."""
+import logging
+import secrets
 from datetime import datetime, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
+import aiosmtplib
 import pyotp
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,22 +13,79 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.core.redis_client import (
     clear_failed_login,
+    delete_password_reset_token,
     get_failed_login_count,
+    get_password_reset_user_id,
     increment_failed_login,
     is_refresh_token_valid,
     revoke_all_user_tokens,
     revoke_refresh_token,
+    store_password_reset_token,
     store_refresh_token,
 )
 from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    hash_password,
     verify_password,
 )
 from app.exceptions import AppException, ValidationError
 from app.modules.auth.schemas import TokenResponse, UserTokenInfo
 from app.modules.users.repository import UserRepository
+
+logger = logging.getLogger(__name__)
+
+
+async def _send_reset_email(to_email: str, full_name: str, reset_url: str) -> None:
+    """Envía el email de recuperación de contraseña vía SMTP directo."""
+    settings = get_settings()
+    if not settings.FEATURE_EMAIL_NOTIFICATIONS or not settings.SMTP_USER:
+        logger.warning(
+            "Email no configurado o FEATURE_EMAIL_NOTIFICATIONS desactivado. "
+            f"Reset URL generada: {reset_url}"
+        )
+        return
+
+    html = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #1f2937;">
+      <h2 style="color: #1e40af; margin-bottom: 8px;">Recuperación de contraseña</h2>
+      <p>Hola <strong>{full_name}</strong>,</p>
+      <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>{settings.CLINIC_NAME}</strong>.</p>
+      <p>Hacé clic en el siguiente botón para crear una nueva contraseña:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="{reset_url}"
+           style="background-color: #1e40af; color: white; padding: 13px 28px;
+                  text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px;">
+          Restablecer contraseña
+        </a>
+      </div>
+      <p style="color: #6b7280; font-size: 13px;">
+        Este enlace expira en <strong>1 hora</strong>.
+        Si no solicitaste este cambio, podés ignorar este email.
+      </p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+      <p style="color: #9ca3af; font-size: 12px;">{settings.CLINIC_NAME}</p>
+    </body>
+    </html>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"Recuperación de contraseña — {settings.CLINIC_NAME}"
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html, "html"))
+
+    await aiosmtplib.send(
+        msg,
+        hostname=settings.SMTP_HOST,
+        port=settings.SMTP_PORT,
+        username=settings.SMTP_USER,
+        password=settings.SMTP_PASSWORD,
+        use_tls=False,
+        start_tls=True,
+    )
 
 settings = get_settings()
 
@@ -178,3 +240,51 @@ class AuthService:
     async def logout_all(self, user_id: str) -> None:
         """Cierra todas las sesiones del usuario."""
         await revoke_all_user_tokens(self.redis, user_id)
+
+    async def forgot_password(self, email: str) -> None:
+        """
+        Genera un token de reset y envía el email.
+        Siempre retorna OK para no revelar si el email existe.
+        """
+        settings = get_settings()
+        user = await self.repo.get_by_email(email)
+        if not user or not user.is_active or user.is_deleted:
+            return  # silently succeed
+
+        token = secrets.token_urlsafe(32)
+        ttl = settings.PASSWORD_RESET_EXPIRE_MINUTES * 60
+        await store_password_reset_token(self.redis, token, str(user.id), ttl)
+
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        try:
+            await _send_reset_email(user.email, user.full_name, reset_url)
+        except Exception as exc:
+            logger.error(f"Error enviando email de reset a {user.email}: {exc}")
+            # No propagamos el error para no revelar si el email existe
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        """Valida el token y actualiza la contraseña. El token es de uso único."""
+        user_id = await get_password_reset_user_id(self.redis, token)
+        if not user_id:
+            raise AppException(
+                message="El enlace de recuperación es inválido o ya expiró",
+                code="INVALID_RESET_TOKEN",
+                status_code=400,
+            )
+
+        user = await self.repo.get_by_id(user_id)
+        if not user or not user.is_active:
+            raise AppException(
+                message="Usuario no encontrado",
+                code="USER_NOT_FOUND",
+                status_code=400,
+            )
+
+        user.hashed_password = hash_password(new_password)
+        user.must_change_password = False
+        await self.db.flush()
+
+        # Token de uso único: eliminarlo
+        await delete_password_reset_token(self.redis, token)
+        # Revocar todas las sesiones activas por seguridad
+        await revoke_all_user_tokens(self.redis, str(user.id))
