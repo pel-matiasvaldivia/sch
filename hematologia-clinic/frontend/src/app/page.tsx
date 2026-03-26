@@ -1,13 +1,17 @@
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { Navbar } from "@/components/landing/navbar";
+import { HeroSection } from "@/components/landing/hero-section";
+import { ServicesSection } from "@/components/landing/services-section";
+import { Footer } from "@/components/landing/footer";
 
 export default function Home() {
-  const cookieStore = cookies();
-  const token = cookieStore.get("access_token");
-
-  if (token) {
-    redirect("/dashboard");
-  } else {
-    redirect("/login");
-  }
+  return (
+    <div className="min-h-screen bg-slate-50 selection:bg-blue-100 selection:text-blue-900">
+      <Navbar />
+      <main>
+        <HeroSection />
+        <ServicesSection />
+      </main>
+      <Footer />
+    </div>
+  );
 }
