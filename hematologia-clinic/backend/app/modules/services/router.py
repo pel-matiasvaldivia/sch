@@ -27,7 +27,7 @@ async def list_services(
     patient_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     service_type: Optional[str] = Query(None),
-    _user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
+    _user=Depends(require_roles("admin", "medico", "tecnico")),
 ):
     """Lista prestaciones con filtros opcionales."""
     svc = MedicalServiceService(db)
@@ -38,7 +38,7 @@ async def list_services(
 async def create_service(
     data: MedicalServiceCreate,
     db: DBDep,
-    current_user=Depends(require_roles("admin", "medico", "administrativo")),
+    current_user=Depends(require_roles("admin", "medico", "tecnico")),
 ):
     """Crea una nueva prestación."""
     svc = MedicalServiceService(db)
@@ -50,7 +50,7 @@ async def create_service(
 async def get_service(
     service_id: str,
     db: DBDep,
-    _user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
+    _user=Depends(require_roles("admin", "medico", "tecnico")),
 ):
     """Obtiene una prestación por ID."""
     svc = MedicalServiceService(db)

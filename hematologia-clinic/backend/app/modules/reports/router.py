@@ -30,7 +30,7 @@ async def list_reports(
     report_type: Optional[str] = None,
     search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "medico", "tecnico")),
+    current_user: User = Depends(require_roles("admin", "medico")),
 ):
     repo = ReportRepository(db)
     items, total = await repo.list_paginated(
@@ -51,7 +51,7 @@ async def list_reports(
 async def create_report(
     data: ReportCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "medico", "tecnico")),
+    current_user: User = Depends(require_roles("admin", "medico")),
 ):
     service = ReportService(db)
     report = await service.create_report(data, str(current_user.id))
@@ -63,7 +63,7 @@ async def create_report(
 async def get_report(
     report_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "medico", "tecnico")),
+    current_user: User = Depends(require_roles("admin", "medico")),
 ):
     repo = ReportRepository(db)
     report = await repo.get_by_id(report_id)
@@ -77,7 +77,7 @@ async def update_report(
     report_id: str,
     data: ReportUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "medico", "tecnico")),
+    current_user: User = Depends(require_roles("admin", "medico")),
 ):
     service = ReportService(db)
     report = await service.update_report(report_id, data, str(current_user.id))
@@ -101,7 +101,7 @@ async def sign_report(
 async def deliver_report(
     report_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "medico", "tecnico")),
+    current_user: User = Depends(require_roles("admin", "medico")),
 ):
     service = ReportService(db)
     report = await service.deliver_report(report_id)

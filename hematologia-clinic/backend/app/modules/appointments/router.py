@@ -20,7 +20,7 @@ router = APIRouter(prefix="/v1/appointments", tags=["Turnos"])
 
 DBDep = Annotated[AsyncSession, Depends(get_db)]
 
-VIEWER_ROLES = ("admin", "medico", "administrativo", "tecnico")
+VIEWER_ROLES = ("admin", "medico", "administrativo")
 EDITOR_ROLES = ("admin", "medico", "administrativo")
 
 

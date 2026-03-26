@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { RouteGuard } from "@/components/layout/RouteGuard";
 
 export default function DashboardLayout({
   children,
@@ -27,7 +28,9 @@ export default function DashboardLayout({
       {/* Área principal */}
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <Topbar onMenuClick={() => setSidebarOpen((prev) => !prev)} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <RouteGuard>{children}</RouteGuard>
+        </main>
       </div>
     </div>
   );

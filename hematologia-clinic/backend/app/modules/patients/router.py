@@ -20,7 +20,7 @@ router = APIRouter(prefix="/v1/patients", tags=["Pacientes"])
 DBDep = Annotated[AsyncSession, Depends(get_db)]
 
 # Roles que pueden ver pacientes
-VIEWER_ROLES = ("admin", "medico", "administrativo", "tecnico")
+VIEWER_ROLES = ("admin", "medico", "administrativo")
 # Roles que pueden crear/editar
 EDITOR_ROLES = ("admin", "medico", "administrativo")
 

@@ -66,7 +66,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/patients",
     label: "Pacientes",
     icon: <UsersIcon />,
-    roles: ["admin", "medico", "administrativo", "tecnico"],
+    roles: ["admin", "medico", "administrativo"],
   },
   {
     href: "/dashboard/appointments",
@@ -84,7 +84,7 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/reports",
     label: "Informes",
     icon: <DocumentIcon />,
-    roles: ["admin", "medico", "tecnico"],
+    roles: ["admin", "medico"],
   },
   {
     href: "/dashboard/billing",
