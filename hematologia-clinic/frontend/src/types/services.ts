@@ -56,6 +56,7 @@ export interface MedicalServiceUpdate {
   performed_by_id?: string;
   performed_at?: string;
   clinical_observations?: string;
+  service_data?: Record<string, unknown>;
 }
 
 export interface MedicalServiceList {
