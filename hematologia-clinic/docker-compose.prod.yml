@@ -23,7 +23,7 @@ services:
     ports: []  # No expose console in prod
 
   backend:
-    image: ${DOCKER_REGISTRY:-ghcr.io/OWNER/REPO}/hema-backend:latest
+    image: ${DOCKER_REGISTRY:-ghcr.io/pel-matiasvaldivia/sch}/hema-backend:latest
     restart: always
     volumes: []  # No source mount in prod
     command: >
@@ -31,16 +31,16 @@ services:
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
 
   worker:
-    image: ${DOCKER_REGISTRY:-ghcr.io/OWNER/REPO}/hema-backend:latest
+    image: ${DOCKER_REGISTRY:-ghcr.io/pel-matiasvaldivia/sch}/hema-backend:latest
     restart: always
     volumes: []
 
   flower:
-    image: ${DOCKER_REGISTRY:-ghcr.io/OWNER/REPO}/hema-backend:latest
+    image: ${DOCKER_REGISTRY:-ghcr.io/pel-matiasvaldivia/sch}/hema-backend:latest
     profiles: ["monitoring"]  # Only start with --profile monitoring
 
   frontend:
-    image: ${DOCKER_REGISTRY:-ghcr.io/OWNER/REPO}/hema-frontend:latest
+    image: ${DOCKER_REGISTRY:-ghcr.io/pel-matiasvaldivia/sch}/hema-frontend:latest
     restart: always
     volumes: []  # No source mount, serve from build output
 
