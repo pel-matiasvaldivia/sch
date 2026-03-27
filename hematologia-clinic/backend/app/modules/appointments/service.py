@@ -75,9 +75,9 @@ class AppointmentService:
             patient_id=data.patient_id,
             doctor_id=data.doctor_id,
             created_by_id=created_by_id,
-            service_type=data.service_type.value,
+            service_type=data.service_type,
             status=AppointmentStatus.PENDING.value,
-            location=data.location.value,
+            location=data.location,
             scheduled_at=scheduled,
             duration_minutes=data.duration_minutes,
             notes=data.notes,
@@ -119,10 +119,10 @@ class AppointmentService:
             update_data["scheduled_at"] = scheduled
 
         if "service_type" in update_data:
-            update_data["service_type"] = update_data["service_type"].value
+            pass  # Ya es un string o se convertirá automáticamente
 
         if "location" in update_data:
-            update_data["location"] = update_data["location"].value
+            pass  # Ya es un string o se convertirá automáticamente
 
         for field, value in update_data.items():
             setattr(appointment, field, value)

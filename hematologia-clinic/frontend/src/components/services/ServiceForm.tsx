@@ -8,14 +8,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useCreateService } from "@/hooks/use-services";
-import { useSearchPatients } from "@/hooks/use-patients";
+import { useSearchPatients, usePatient } from "@/hooks/use-patients";
+import { useUsers } from "@/hooks/use-users";
 import type { MedicalServiceCreate, ServiceLocation, ServiceType } from "@/types/services";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 const schema = z.object({
   patient_id: z.string().min(1, "Seleccioná un paciente"),
   service_type: z.string().min(1, "Seleccioná el tipo de prestación"),
   location: z.string().min(1, "Seleccioná la ubicación"),
   clinical_observations: z.string().optional(),
+  requested_by_id: z.string().optional(),
+  performed_by_id: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -32,20 +37,47 @@ export function ServiceForm({ defaultPatientId, defaultPatientName }: Props) {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const { data: patientResults } = useSearchPatients(patientSearch);
+  const { data: defaultPatient } = usePatient(defaultPatientId || "");
+  const { data: doctorsData } = useUsers({ role: "medico", size: 100 });
+  const { data: techniciansData } = useUsers({ role: "tecnico", size: 100 });
   const createMutation = useCreateService();
+
+  const doctors = doctorsData?.items ?? [];
+  const technicians = techniciansData?.items ?? [];
+
+  const searchParams = useSearchParams();
+  const urlServiceType = searchParams.get("service_type") as ServiceType | null;
+  const urlProfessionalId = searchParams.get("professional_id");
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       patient_id: defaultPatientId ?? "",
       location: "clinica",
+      service_type: urlServiceType ?? "",
+      requested_by_id: urlServiceType && ["consulta_medica", "hematologia"].includes(urlServiceType) ? urlProfessionalId ?? "" : "",
+      performed_by_id: urlServiceType && !["consulta_medica", "hematologia"].includes(urlServiceType) ? urlProfessionalId ?? "" : "",
     },
   });
+
+  const selectedServiceType = watch("service_type");
+  const isMedicalService = ["consulta_medica", "hematologia"].includes(selectedServiceType);
+  const isTechnicalService = ["laboratorio", "extraccion", "coagulacion", "puncion", "infusion"].includes(selectedServiceType);
+
+  // Sincronizar si cambian los params de URL (útil si se navega entre perfiles)
+  useEffect(() => {
+    if (urlServiceType) setValue("service_type", urlServiceType);
+    if (urlProfessionalId) {
+      if (isMedicalService) setValue("requested_by_id", urlProfessionalId);
+      if (isTechnicalService) setValue("performed_by_id", urlProfessionalId);
+    }
+  }, [urlServiceType, urlProfessionalId, isMedicalService, isTechnicalService, setValue]);
 
   const onSubmit = async (data: FormData) => {
     try {
@@ -54,6 +86,8 @@ export function ServiceForm({ defaultPatientId, defaultPatientName }: Props) {
         service_type: data.service_type as ServiceType,
         location: data.location as ServiceLocation,
         clinical_observations: data.clinical_observations || undefined,
+        requested_by_id: data.requested_by_id || undefined,
+        performed_by_id: data.performed_by_id || undefined,
       } as MedicalServiceCreate);
       toast.success("Prestación registrada correctamente");
       router.push("/dashboard/services");
@@ -83,7 +117,13 @@ export function ServiceForm({ defaultPatientId, defaultPatientName }: Props) {
         <div className="relative">
           <input
             type="text"
-            value={selectedPatientName || patientSearch}
+            value={
+              defaultPatientId
+                ? defaultPatient
+                  ? `${defaultPatient.full_name} — DNI ${defaultPatient.dni}`
+                  : "Cargando paciente vinculado..."
+                : selectedPatientName || patientSearch
+            }
             onChange={(e) => {
               if (defaultPatientId) return;
               setPatientSearch(e.target.value);
@@ -138,9 +178,10 @@ export function ServiceForm({ defaultPatientId, defaultPatientName }: Props) {
             <option value="">Seleccioná</option>
             <option value="consulta_medica">Consulta Médica</option>
             <option value="hematologia">Hematología</option>
+            <option value="laboratorio">Laboratorio / Análisis</option>
+            <option value="extraccion">Extracción</option>
             <option value="coagulacion">Coagulación</option>
             <option value="puncion">Punción</option>
-            <option value="laboratorio">Laboratorio</option>
             <option value="infusion">Infusión</option>
           </select>
           {errors.service_type && (
@@ -162,6 +203,43 @@ export function ServiceForm({ defaultPatientId, defaultPatientName }: Props) {
             <option value="domicilio">Domicilio</option>
           </select>
         </div>
+      </div>
+
+      {/* Profesionales Médicos o Técnicos según el tipo */}
+      <div className="grid grid-cols-1 gap-4">
+        {isMedicalService && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Médico Responsable / Solicitante <span className="text-red-500">*</span>
+            </label>
+            <select
+              {...register("requested_by_id")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white"
+            >
+              <option value="">Seleccioná médico...</option>
+              {doctors.map(d => (
+                <option key={d.id} value={d.id}>{d.full_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {isTechnicalService && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Técnico Hematólogo Responsable <span className="text-red-500">*</span>
+            </label>
+            <select
+              {...register("performed_by_id")}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white"
+            >
+              <option value="">Seleccioná técnico...</option>
+              {technicians.map(t => (
+                <option key={t.id} value={t.id}>{t.full_name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Observaciones clínicas */}

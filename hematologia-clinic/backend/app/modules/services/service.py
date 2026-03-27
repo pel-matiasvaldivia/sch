@@ -18,7 +18,8 @@ from app.modules.patients.repository import PatientRepository
 
 ALLOWED_TRANSITIONS = {
     ServiceStatus.REQUESTED: {ServiceStatus.IN_PROGRESS, ServiceStatus.CANCELLED},
-    ServiceStatus.IN_PROGRESS: {ServiceStatus.COMPLETED, ServiceStatus.CANCELLED},
+    ServiceStatus.IN_PROGRESS: {ServiceStatus.VALIDATION_PENDING, ServiceStatus.CANCELLED},
+    ServiceStatus.VALIDATION_PENDING: {ServiceStatus.COMPLETED, ServiceStatus.CANCELLED},
     ServiceStatus.COMPLETED: set(),
     ServiceStatus.CANCELLED: set(),
 }
@@ -64,7 +65,7 @@ class MedicalServiceService:
         return service
 
     async def update_service(
-        self, service_id: str, data: MedicalServiceUpdate
+        self, service_id: str, data: MedicalServiceUpdate, user_id: Optional[str] = None
     ) -> MedicalService:
         service = await self.repo.get_by_id(service_id)
         if not service:
@@ -89,6 +90,40 @@ class MedicalServiceService:
                 raise ValidationError("Se requiere indicar quién realiza la prestación")
             if new_status == ServiceStatus.COMPLETED:
                 service.performed_at = service.performed_at or datetime.now(timezone.utc)
+                # Trigger automático de facturación
+                from app.modules.billing.service import BillingService
+                from app.modules.billing.schemas import InvoiceCreate
+                billing_service = BillingService(self.db)
+                invoice_data = InvoiceCreate(
+                    patient_id=service.patient_id,
+                    issue_date=datetime.now(timezone.utc).date(),
+                    notes=f"Factura generada automáticamente por validación de prestación {service.id}.",
+                    items=[{
+                        "service_id": service.id,
+                        "description": f"Servicio realizado: {service.service_type}",
+                        "quantity": 1,
+                        "unit_price": 0.0
+                    }]
+                )
+                await billing_service.create_invoice(invoice_data, "system_auto")
+
+                # Trigger automático de informe médico
+                from app.modules.reports.service import ReportService
+                from app.modules.reports.schemas import ReportCreate
+                report_svc = ReportService(self.db)
+                report_data = ReportCreate(
+                    patient_id=service.patient_id,
+                    service_id=service.id,
+                    report_type="laboratorio",  # Por defecto laboratorio para estas prestaciones
+                    content={
+                        "resultados": service.service_data.get("resultados_analiticos", {}),
+                        "observaciones": service.clinical_observations,
+                        "conclusiones": service.service_data.get("conclusiones_medicas", "")
+                    }
+                )
+                report = await report_svc.create_report(report_data, user_id or "system_auto")
+                # Firmar el informe automáticamente
+                await report_svc.sign_report(report.id, user_id or str(service.performed_by_id))
 
         for field, value in update_data.items():
             setattr(service, field, value)

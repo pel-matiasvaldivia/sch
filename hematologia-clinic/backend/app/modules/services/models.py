@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 class ServiceStatus(str, enum.Enum):
     REQUESTED = "solicitada"
     IN_PROGRESS = "en_proceso"
+    VALIDATION_PENDING = "para_validar"
     COMPLETED = "completada"
     CANCELLED = "cancelada"
 

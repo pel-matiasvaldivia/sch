@@ -11,13 +11,20 @@ export interface UserSummary {
 
 export type ReportStatus = "borrador" | "firmado" | "entregado";
 
+export interface ServiceSummary {
+  id: string;
+  service_type: string;
+  performed_at: string | null;
+  performed_by: UserSummary | null;
+}
+
 export interface Report {
   id: string;
   patient_id: string;
   service_id: string | null;
   report_type: string;
   status: ReportStatus;
-  content: Record<string, string> | null;
+  content: any | null;
   pdf_path: string | null;
   access_token: string;
   signed_at: string | null;
@@ -28,6 +35,7 @@ export interface Report {
   patient: PatientSummary | null;
   created_by: UserSummary | null;
   signed_by: UserSummary | null;
+  service: ServiceSummary | null;
   created_at: string;
   updated_at: string;
 }

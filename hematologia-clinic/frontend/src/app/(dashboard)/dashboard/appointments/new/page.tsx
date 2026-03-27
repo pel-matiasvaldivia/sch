@@ -4,7 +4,11 @@ import { AppointmentForm } from "@/components/appointments/AppointmentForm";
 
 export const metadata: Metadata = { title: "Nuevo Turno" };
 
-export default function NewAppointmentPage() {
+interface Props {
+  searchParams: { patient_id?: string };
+}
+
+export default function NewAppointmentPage({ searchParams }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -23,7 +27,7 @@ export default function NewAppointmentPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <AppointmentForm />
+        <AppointmentForm defaultPatientId={searchParams.patient_id} />
       </div>
     </div>
   );

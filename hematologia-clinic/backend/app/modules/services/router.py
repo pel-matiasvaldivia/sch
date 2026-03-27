@@ -27,7 +27,7 @@ async def list_services(
     patient_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     service_type: Optional[str] = Query(None),
-    _user=Depends(require_roles("admin", "medico", "tecnico")),
+    _user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
 ):
     """Lista prestaciones con filtros opcionales."""
     svc = MedicalServiceService(db)
@@ -38,7 +38,7 @@ async def list_services(
 async def create_service(
     data: MedicalServiceCreate,
     db: DBDep,
-    current_user=Depends(require_roles("admin", "medico", "tecnico")),
+    current_user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
 ):
     """Crea una nueva prestación."""
     svc = MedicalServiceService(db)
@@ -50,7 +50,7 @@ async def create_service(
 async def get_service(
     service_id: str,
     db: DBDep,
-    _user=Depends(require_roles("admin", "medico", "tecnico")),
+    _user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
 ):
     """Obtiene una prestación por ID."""
     svc = MedicalServiceService(db)
@@ -63,11 +63,11 @@ async def update_service(
     service_id: str,
     data: MedicalServiceUpdate,
     db: DBDep,
-    _user=Depends(require_roles("admin", "medico", "tecnico")),
+    current_user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
 ):
     """Actualiza estado u observaciones de una prestación."""
     svc = MedicalServiceService(db)
-    service = await svc.update_service(service_id, data)
+    service = await svc.update_service(service_id, data, user_id=str(current_user.id))
     return MedicalServiceRead.model_validate(service)
 
 

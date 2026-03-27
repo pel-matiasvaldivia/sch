@@ -11,6 +11,7 @@ import {
   type ReportStatus,
 } from "@/types/reports";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { ReportPrintView } from "./ReportPrintView";
 
 function formatDate(dateStr: string): string {
   const [year, month, day] = dateStr.split("T")[0].split("-");
@@ -65,9 +66,10 @@ function ConfirmModal({
 // ─── Row actions ───
 interface RowActionsProps {
   report: Report;
+  onPrint: (report: Report) => void;
 }
 
-function RowActions({ report }: RowActionsProps) {
+function RowActions({ report, onPrint }: RowActionsProps) {
   const [confirmAction, setConfirmAction] = useState<"sign" | "deliver" | "delete" | null>(null);
   const sign = useSignReport(report.id);
   const deliver = useDeliverReport(report.id);
@@ -140,6 +142,28 @@ function RowActions({ report }: RowActionsProps) {
             </button>
           </>
         )}
+        {(report.status === "firmado" || report.status === "entregado") && (
+          <>
+            <button
+              onClick={() => onPrint(report)}
+              className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              PDF
+            </button>
+            <button
+              onClick={() => alert("Información enviada al paciente vía Email/WhatsApp")}
+              className="text-xs text-indigo-600 hover:underline font-medium flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              Enviar
+            </button>
+          </>
+        )}
         {report.status === "firmado" && (
           <button
             onClick={() => setConfirmAction("deliver")}
@@ -159,6 +183,7 @@ export function ReportListClient() {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [printingReport, setPrintingReport] = useState<Report | null>(null);
 
   const { data, isLoading, error } = useReports({
     page,
@@ -181,8 +206,23 @@ export function ReportListClient() {
   const reports = data?.items ?? [];
   const totalPages = data?.pages ?? 1;
 
+  const handlePrint = (report: Report) => {
+    setPrintingReport(report);
+    // Pequeño delay para asegurar que el componente se renderice antes de imprimir
+    setTimeout(() => {
+      window.print();
+      setPrintingReport(null);
+    }, 150);
+  };
+
   return (
     <div className="space-y-4">
+      {/* Vista de impresión oculta en pantalla, visible en @media print */}
+      {printingReport && (
+        <div className="hidden print:block">
+          <ReportPrintView report={printingReport} />
+        </div>
+      )}
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex gap-2 flex-wrap flex-1">
@@ -277,7 +317,7 @@ export function ReportListClient() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <RowActions report={report} />
+                      <RowActions report={report} onPrint={handlePrint} />
                     </td>
                   </tr>
                 ))}

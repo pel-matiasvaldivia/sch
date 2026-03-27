@@ -53,7 +53,13 @@ export function LoginForm() {
 
       setUser(result.user);
       toast.success(`Bienvenido/a, ${result.user.full_name}`);
-      router.push("/dashboard");
+      
+      // Redirección por rol
+      if (result.user.roles.includes("tecnico")) {
+        router.push("/dashboard/services/technician");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al iniciar sesión");
     } finally {

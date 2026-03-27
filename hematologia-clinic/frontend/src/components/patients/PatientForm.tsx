@@ -105,8 +105,8 @@ export function PatientForm({ mode, patient }: Props) {
 
       if (mode === "create") {
         const created = await createMutation.mutateAsync(payload);
-        toast.success(`Paciente ${created.full_name} registrado correctamente (${created.medical_record_number})`);
-        router.push(`/dashboard/patients/${created.id}`);
+        toast.success(`Paciente ${created.full_name} registrado. Redirigiendo a asignación de turno...`);
+        router.push(`/dashboard/appointments/new?patient_id=${created.id}`);
       } else {
         await updateMutation.mutateAsync(payload);
         toast.success("Datos actualizados correctamente");

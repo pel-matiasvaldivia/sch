@@ -8,8 +8,8 @@ const ROUTE_PERMISSIONS: Array<{ path: string; roles: string[] }> = [
   { path: "/dashboard/users",        roles: ["admin"] },
   { path: "/dashboard/settings",     roles: ["admin"] },
   { path: "/dashboard/billing",      roles: ["admin", "administrativo"] },
-  { path: "/dashboard/reports",      roles: ["admin", "medico"] },
-  { path: "/dashboard/services",     roles: ["admin", "medico", "tecnico"] },
+  { path: "/dashboard/reports",      roles: ["admin", "medico", "administrativo"] },
+  { path: "/dashboard/services",     roles: ["admin", "medico", "tecnico", "administrativo"] },
   { path: "/dashboard/appointments", roles: ["admin", "medico", "administrativo"] },
   { path: "/dashboard/patients",     roles: ["admin", "medico", "administrativo"] },
 ];

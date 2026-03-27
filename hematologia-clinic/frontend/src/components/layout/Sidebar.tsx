@@ -78,13 +78,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/services",
     label: "Prestaciones",
     icon: <FlaskIcon />,
-    roles: ["admin", "medico", "tecnico"],
+    roles: ["admin", "medico", "tecnico", "administrativo"],
   },
   {
     href: "/dashboard/reports",
     label: "Informes",
     icon: <DocumentIcon />,
-    roles: ["admin", "medico"],
+    roles: ["admin", "medico", "administrativo"],
   },
   {
     href: "/dashboard/billing",
@@ -142,15 +142,21 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Navegación */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {visibleItems.map((item) => {
+          // Ajuste dinámico para técnicos en Prestaciones
+          let finalHref = item.href;
+          if (item.label === "Prestaciones" && userRoles.includes("tecnico")) {
+            finalHref = "/dashboard/services/technician";
+          }
+
           const isActive =
-            item.href === "/dashboard"
+            finalHref === "/dashboard"
               ? pathname === "/dashboard"
-              : pathname.startsWith(item.href);
+              : pathname.startsWith(finalHref);
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={finalHref}
               onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",

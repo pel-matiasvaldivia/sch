@@ -27,7 +27,7 @@ async def list_users(
     size: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
     role: Optional[str] = Query(None),
-    _user=Depends(require_roles("admin")),
+    _user=Depends(require_roles("admin", "medico", "tecnico", "administrativo")),
 ):
     """Lista todos los usuarios. Solo admin."""
     service = UserService(db)

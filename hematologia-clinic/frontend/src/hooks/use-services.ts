@@ -66,6 +66,18 @@ export function useUpdateService(id: string) {
   });
 }
 
+export function useUpdateServiceById() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: MedicalServiceUpdate }) =>
+      api.patch<MedicalService>(`/v1/services/${id}`, data),
+    onSuccess: (updated: MedicalService, { id }) => {
+      queryClient.setQueryData(serviceKeys.detail(id), updated);
+      queryClient.invalidateQueries({ queryKey: serviceKeys.lists() });
+    },
+  });
+}
+
 export function useDeleteService() {
   const queryClient = useQueryClient();
   return useMutation({

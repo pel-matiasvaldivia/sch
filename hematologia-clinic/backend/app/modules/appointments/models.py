@@ -32,6 +32,7 @@ class ServiceType(str, enum.Enum):
     PUNCTURE = "puncion"
     LABORATORY = "laboratorio"
     INFUSION = "infusion"
+    EXTRACTION = "extraccion"
 
 
 class AppointmentLocation(str, enum.Enum):

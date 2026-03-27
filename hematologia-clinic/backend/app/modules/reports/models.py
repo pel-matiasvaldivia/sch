@@ -13,6 +13,7 @@ from app.db.mixins import TimestampMixin, UUIDMixin
 if TYPE_CHECKING:
     from app.modules.patients.models import Patient
     from app.modules.users.models import User
+    from app.modules.services.models import MedicalService
 
 
 def generate_access_token() -> str:
@@ -66,5 +67,6 @@ class Report(Base, UUIDMixin, TimestampMixin):
 
     # Relaciones
     patient: Mapped["Patient"] = relationship("Patient", back_populates="reports")
+    service: Mapped[Optional["MedicalService"]] = relationship("MedicalService")
     created_by: Mapped["User"] = relationship("User", foreign_keys=[created_by_id])
     signed_by: Mapped[Optional["User"]] = relationship("User", foreign_keys=[signed_by_id])

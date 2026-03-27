@@ -10,20 +10,20 @@ from app.modules.appointments.models import AppointmentLocation, AppointmentStat
 class AppointmentCreate(BaseModel):
     patient_id: str
     doctor_id: str
-    service_type: ServiceType
+    service_type: str
     scheduled_at: datetime
     duration_minutes: int = Field(30, ge=5, le=480)
-    location: AppointmentLocation = AppointmentLocation.CLINIC
+    location: str = "clinica"
     notes: Optional[str] = Field(None, max_length=2000)
     extra_data: Optional[Dict[str, Any]] = None
 
 
 class AppointmentUpdate(BaseModel):
     doctor_id: Optional[str] = None
-    service_type: Optional[ServiceType] = None
+    service_type: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     duration_minutes: Optional[int] = Field(None, ge=5, le=480)
-    location: Optional[AppointmentLocation] = None
+    location: Optional[str] = None
     notes: Optional[str] = Field(None, max_length=2000)
     extra_data: Optional[Dict[str, Any]] = None
 

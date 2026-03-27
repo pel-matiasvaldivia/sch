@@ -7,6 +7,7 @@ import { useServices, useUpdateService, useDeleteService } from "@/hooks/use-ser
 import { useUsers } from "@/hooks/use-users";
 import { ApiError } from "@/lib/api-client";
 import { AccessDenied } from "@/components/ui/AccessDenied";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   SERVICE_STATUS_LABELS,
   SERVICE_STATUS_COLORS,
@@ -17,12 +18,17 @@ import {
   type ServiceStatus,
 } from "@/types/services";
 
-function StatusBadge({ status }: { status: ServiceStatus }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SERVICE_STATUS_COLORS[status]}`}>
+function StatusBadge({ status, href }: { status: ServiceStatus; href?: string }) {
+  const badge = (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${SERVICE_STATUS_COLORS[status]} ${href ? 'hover:opacity-80 transition-opacity cursor-pointer' : ''}`}>
       {SERVICE_STATUS_LABELS[status]}
     </span>
   );
+
+  if (href) {
+    return <Link href={href}>{badge}</Link>;
+  }
+  return badge;
 }
 
 interface StatusMenuProps {
@@ -38,6 +44,12 @@ function StatusMenu({ service, openId, setOpenId, doctors }: StatusMenuProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const updateMutation = useUpdateService(service.id);
+  const user = useAuthStore((s) => s.user);
+
+  const isDoctor = user?.roles.includes("medico") || user?.roles.includes("admin");
+  const validationHref = (service.status === "para_validar" && isDoctor) 
+    ? "/dashboard/services/medical-validation" 
+    : undefined;
 
   const isOpen = openId === service.id;
   const transitions = STATUS_TRANSITIONS[service.status as ServiceStatus] ?? [];
@@ -88,7 +100,10 @@ function StatusMenu({ service, openId, setOpenId, doctors }: StatusMenuProps) {
 
   return (
     <div className="flex items-center gap-1">
-      <StatusBadge status={service.status as ServiceStatus} />
+      <StatusBadge 
+        status={service.status as ServiceStatus} 
+        href={validationHref}
+      />
       {transitions.length > 0 && (
         <button
           ref={btnRef}
@@ -209,7 +224,8 @@ export function ServiceListClient({ patientId }: Props) {
             <option value="hematologia">Hematología</option>
             <option value="coagulacion">Coagulación</option>
             <option value="puncion">Punción</option>
-            <option value="laboratorio">Laboratorio</option>
+            <option value="laboratorio">Laboratorio / Análisis</option>
+            <option value="extraccion">Extracción</option>
             <option value="infusion">Infusión</option>
           </select>
 

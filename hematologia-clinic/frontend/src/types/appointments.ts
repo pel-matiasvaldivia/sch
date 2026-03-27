@@ -13,6 +13,7 @@ export type ServiceType =
   | "coagulacion"
   | "puncion"
   | "laboratorio"
+  | "extraccion"
   | "infusion";
 
 export type AppointmentLocation =
@@ -91,6 +92,7 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   coagulacion: "Coagulación",
   puncion: "Punción",
   laboratorio: "Laboratorio",
+  extraccion: "Extracción",
   infusion: "Infusión",
 };
 

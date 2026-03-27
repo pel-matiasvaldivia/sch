@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.modules.patients.models import Patient
 from app.modules.reports.models import Report
+from app.modules.services.models import MedicalService
 
 
 class ReportRepository:
@@ -18,6 +19,7 @@ class ReportRepository:
             selectinload(Report.patient),
             selectinload(Report.created_by),
             selectinload(Report.signed_by),
+            selectinload(Report.service).selectinload(MedicalService.performed_by),
         ]
 
     async def get_by_id(self, report_id: str) -> Optional[Report]:

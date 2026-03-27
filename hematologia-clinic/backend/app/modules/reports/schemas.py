@@ -18,6 +18,14 @@ class UserSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ServiceSummary(BaseModel):
+    id: str
+    service_type: str
+    performed_at: Optional[datetime] = None
+    performed_by: Optional[UserSummary] = None
+    model_config = {"from_attributes": True}
+
+
 class ReportCreate(BaseModel):
     patient_id: str
     service_id: Optional[str] = None
@@ -47,6 +55,7 @@ class ReportRead(BaseModel):
     patient: Optional[PatientSummary] = None
     created_by: Optional[UserSummary] = None
     signed_by: Optional[UserSummary] = None
+    service: Optional[ServiceSummary] = None
     created_at: datetime
     updated_at: datetime
     model_config = {"from_attributes": True}

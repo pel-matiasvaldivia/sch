@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useCreateAppointment } from "@/hooks/use-appointments";
-import { useSearchPatients } from "@/hooks/use-patients";
+import { useSearchPatients, usePatient } from "@/hooks/use-patients";
 import { useUsers } from "@/hooks/use-users";
 import type { AppointmentCreate, AppointmentLocation, ServiceType } from "@/types/appointments";
 
@@ -25,14 +25,20 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function AppointmentForm() {
+interface Props {
+  defaultPatientId?: string;
+}
+
+export function AppointmentForm({ defaultPatientId }: Props) {
   const router = useRouter();
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatientName, setSelectedPatientName] = useState("");
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
   const { data: patientResults } = useSearchPatients(patientSearch);
-  const { data: usersData } = useUsers({ role: "medico", size: 100 });
+  const { data: defaultPatient } = usePatient(defaultPatientId || "");
+  const { data: doctorsData } = useUsers({ role: "medico", size: 100 });
+  const { data: techniciansData } = useUsers({ role: "tecnico", size: 100 });
   const createMutation = useCreateAppointment();
 
   const {
@@ -40,24 +46,47 @@ export function AppointmentForm() {
     handleSubmit,
     setValue,
     formState: { errors, isSubmitting },
+    watch,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { duration_minutes: 30, location: "clinica", scheduled_time: "09:00" },
+    defaultValues: {
+      patient_id: defaultPatientId ?? "",
+      duration_minutes: 30,
+      location: "clinica",
+      scheduled_time: "09:00",
+      service_type: "consulta_medica",
+    },
   });
+
+  const selectedServiceType = watch("service_type");
+
+  // Definición de tipos de servicio por rol profesional
+  const isMedicalService = ["consulta_medica", "hematologia"].includes(selectedServiceType);
+  const isTechnicalService = ["laboratorio", "extraccion", "coagulacion", "puncion", "infusion"].includes(selectedServiceType);
 
   const onSubmit = async (data: FormData) => {
     try {
       const scheduled_at = `${data.scheduled_date}T${data.scheduled_time}:00`;
       const { scheduled_date, scheduled_time, ...rest } = data;
       await createMutation.mutateAsync({ ...rest, scheduled_at } as AppointmentCreate);
-      toast.success("Turno creado correctamente");
-      router.push("/dashboard/appointments");
+      toast.success("Turno creado correctamente. Generando prestación enlazada...");
+      
+      const params = new URLSearchParams({
+        patient_id: data.patient_id,
+        service_type: data.service_type,
+        professional_id: data.doctor_id, // doctor_id es el campo genérico para el profesional en el turno
+      });
+      router.push(`/dashboard/services/new?${params.toString()}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Error al crear el turno");
     }
   };
 
-  const doctors = usersData?.items ?? [];
+  const doctors = doctorsData?.items ?? [];
+  const technicians = techniciansData?.items ?? [];
+  const professionals = isTechnicalService ? technicians : doctors;
+  const professionalLabel = isTechnicalService ? "Técnico" : "Médico";
+  const professionalPlaceholder = isTechnicalService ? "Seleccioná un técnico" : "Seleccioná un médico";
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
@@ -80,16 +109,28 @@ export function AppointmentForm() {
         <div className="relative">
           <input
             type="text"
-            value={selectedPatientName || patientSearch}
+            value={
+              defaultPatientId
+                ? defaultPatient
+                  ? `${defaultPatient.full_name} — DNI ${defaultPatient.dni}`
+                  : "Cargando paciente vinculado..."
+                : selectedPatientName || patientSearch
+            }
             onChange={(e) => {
+              if (defaultPatientId) return;
               setPatientSearch(e.target.value);
               setSelectedPatientName("");
               setValue("patient_id", "");
               setShowPatientDropdown(true);
             }}
-            onFocus={() => setShowPatientDropdown(true)}
-            placeholder="Buscar por nombre, apellido o DNI..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            onFocus={() => !defaultPatientId && setShowPatientDropdown(true)}
+            disabled={!!defaultPatientId}
+            placeholder="Buscar por nombre o DNI (se pre-seleccionará si provienes de Alta)..."
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
+              defaultPatientId
+                ? "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+                : "border-gray-300"
+            }`}
           />
           {showPatientDropdown && patientResults?.items && patientResults.items.length > 0 && (
             <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
@@ -116,27 +157,6 @@ export function AppointmentForm() {
         )}
       </div>
 
-      {/* Médico */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Médico <span className="text-red-500">*</span>
-        </label>
-        <select
-          {...register("doctor_id")}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white"
-        >
-          <option value="">Seleccioná un médico</option>
-          {doctors.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.full_name}
-            </option>
-          ))}
-        </select>
-        {errors.doctor_id && (
-          <p className="text-xs text-red-600 mt-1">{errors.doctor_id.message}</p>
-        )}
-      </div>
-
       {/* Tipo de servicio y Ubicación */}
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -150,9 +170,10 @@ export function AppointmentForm() {
             <option value="">Seleccioná</option>
             <option value="consulta_medica">Consulta Médica</option>
             <option value="hematologia">Hematología</option>
+            <option value="laboratorio">Laboratorio / Análisis</option>
+            <option value="extraccion">Extracción</option>
             <option value="coagulacion">Coagulación</option>
             <option value="puncion">Punción</option>
-            <option value="laboratorio">Laboratorio</option>
             <option value="infusion">Infusión</option>
           </select>
           {errors.service_type && (
@@ -177,6 +198,27 @@ export function AppointmentForm() {
             <p className="text-xs text-red-600 mt-1">{errors.location.message}</p>
           )}
         </div>
+      </div>
+
+      {/* Profesional (Médico o Técnico según servicio) */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {professionalLabel} <span className="text-red-500">*</span>
+        </label>
+        <select
+          {...register("doctor_id")}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white"
+        >
+          <option value="">{professionalPlaceholder}</option>
+          {professionals.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.full_name}
+            </option>
+          ))}
+        </select>
+        {errors.doctor_id && (
+          <p className="text-xs text-red-600 mt-1">Seleccioná un profesional</p>
+        )}
       </div>
 
       {/* Fecha, Hora y Duración */}
