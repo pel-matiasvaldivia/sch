@@ -124,7 +124,7 @@ export default function MedicalValidationPage() {
 
                     <div className="flex-1 py-4 space-y-6">
                       {/* Resultados analíticos cargados por el técnico */}
-                      {s.service_data?.resultados_analiticos && (
+                      {!!s.service_data?.resultados_analiticos && (
                         <div>
                           <h4 className="text-sm font-bold text-gray-700 uppercase mb-3 flex items-center gap-2">
                             <FileText className="w-4 h-4" /> Resultados de Laboratorio
@@ -133,7 +133,7 @@ export default function MedicalValidationPage() {
                             {Object.entries(s.service_data.resultados_analiticos as Record<string, string>).map(([key, val]) => (
                               <div key={key} className="flex justify-between border-b border-gray-200 pb-2 last:border-0 last:pb-0">
                                 <span className="text-sm text-gray-600 capitalize">{key.replace(/_/g, " ")}</span>
-                                <span className="text-sm font-semibold text-gray-900">{val}</span>
+                                <span className="text-sm font-semibold text-gray-900">{String(val)}</span>
                               </div>
                             ))}
                           </div>
