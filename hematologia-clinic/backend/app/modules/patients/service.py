@@ -1,9 +1,12 @@
 """Lógica de negocio para gestión de pacientes."""
 import math
+import secrets
+import string
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import hash_password
 from app.exceptions import ConflictError, NotFoundError
 from app.modules.patients.models import Patient
 from app.modules.patients.repository import PatientRepository
@@ -17,12 +20,27 @@ from app.modules.patients.schemas import (
 )
 
 
+def _generate_temp_password() -> str:
+    """Genera una contraseña temporal segura que cumple los requisitos del sistema."""
+    upper = secrets.choice(string.ascii_uppercase)
+    digit = secrets.choice(string.digits)
+    rest = "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+    chars = list(upper + digit + rest)
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+
 class PatientService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = PatientRepository(db)
 
-    async def create_patient(self, data: PatientCreate, created_by_id: str) -> Patient:
+    async def create_patient(
+        self, data: PatientCreate, created_by_id: str
+    ) -> tuple[Patient, str]:
+        """Crea un paciente y automáticamente su usuario de tipo 'paciente'.
+        Retorna (patient, temp_password).
+        """
         # Verificar DNI único
         existing = await self.repo.get_by_dni(data.dni)
         if existing:
@@ -54,7 +72,51 @@ class PatientService:
             primary_doctor_id=data.primary_doctor_id,
             created_by_id=created_by_id,
         )
-        return await self.repo.create(patient)
+        patient = await self.repo.create(patient)
+
+        # Crear usuario vinculado con rol "paciente"
+        temp_password = await self._create_linked_user(patient)
+
+        # Refrescar el paciente porque _create_linked_user hizo flush y lo expiró
+        await self.db.refresh(patient)
+
+        return patient, temp_password
+
+    async def _create_linked_user(self, patient: Patient) -> str:
+        """Crea un User con rol 'paciente' vinculado al paciente. Retorna temp_password."""
+        from app.modules.users.models import User, UserRole
+        from app.modules.users.repository import UserRepository
+
+        user_repo = UserRepository(self.db)
+        user_email = patient.email or f"{patient.dni}@paciente.local"
+
+        # Si ya existe un usuario con ese email, solo vincularlo
+        existing_user = await user_repo.get_by_email(user_email)
+        if existing_user:
+            patient.user_id = existing_user.id
+            await self.db.flush()
+            return ""  # Sin contraseña nueva
+
+        temp_password = _generate_temp_password()
+        full_name = f"{patient.first_name} {patient.last_name}"
+
+        user = User(
+            email=user_email.lower(),
+            full_name=full_name,
+            phone=patient.phone,
+            hashed_password=hash_password(temp_password),
+            must_change_password=True,
+        )
+        user = await user_repo.create(user)
+
+        paciente_role = await user_repo.get_role_by_name("paciente")
+        if paciente_role:
+            self.db.add(UserRole(user_id=user.id, role_id=paciente_role.id))
+
+        patient.user_id = user.id
+        await self.db.flush()
+
+        return temp_password
 
     async def get_patient(self, patient_id: str) -> Patient:
         patient = await self.repo.get_by_id(patient_id)

@@ -92,11 +92,18 @@ class PatientRead(BaseModel):
     blood_type: Optional[str] = None
     clinical_notes: Optional[Dict[str, Any]] = None
     primary_doctor_id: Optional[str] = None
+    user_id: Optional[str] = None
     portal_access_enabled: bool
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PatientCreateResponse(PatientRead):
+    """Respuesta al crear un paciente — incluye contraseña temporal del usuario vinculado."""
+    temp_password: Optional[str] = None
+    user_email: Optional[str] = None
 
 
 class PatientSummary(BaseModel):

@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useCreatePatient, useUpdatePatient } from "@/hooks/use-patients";
-import type { Patient } from "@/types/patients";
+import type { Patient, PatientCreateResponse } from "@/types/patients";
 
 const patientSchema = z.object({
   first_name: z.string().min(1, "Requerido").max(100),
@@ -61,10 +62,81 @@ function FormField({
 const inputClass =
   "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors";
 
+function TempPasswordDialog({
+  created,
+  onContinue,
+}: {
+  created: PatientCreateResponse;
+  onContinue: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(created.temp_password ?? "");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 max-w-md w-full mx-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-gray-900">Paciente registrado</h3>
+            <p className="text-sm text-gray-500">{created.full_name}</p>
+          </div>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <p className="text-sm font-medium text-amber-900 mb-2">
+            Se creó automáticamente un usuario de acceso al portal
+          </p>
+          <div className="space-y-1 text-sm text-amber-800">
+            <p>
+              <span className="font-medium">Email:</span>{" "}
+              <span className="font-mono">{created.user_email}</span>
+            </p>
+            <p className="flex items-center gap-2">
+              <span className="font-medium">Contraseña temporal:</span>
+              <span className="font-mono bg-white px-2 py-0.5 rounded border border-amber-300 tracking-wider">
+                {created.temp_password}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="text-amber-700 hover:text-amber-900 text-xs underline"
+              >
+                {copied ? "Copiado" : "Copiar"}
+              </button>
+            </p>
+          </div>
+          <p className="text-xs text-amber-700 mt-2">
+            El paciente deberá cambiar la contraseña en su primer acceso.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className="w-full px-4 py-2.5 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors"
+        >
+          Continuar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PatientForm({ mode, patient }: Props) {
   const router = useRouter();
   const createMutation = useCreatePatient();
   const updateMutation = useUpdatePatient(patient?.id || "");
+  const [createdPatient, setCreatedPatient] = useState<PatientCreateResponse | null>(null);
 
   const {
     register,
@@ -105,8 +177,12 @@ export function PatientForm({ mode, patient }: Props) {
 
       if (mode === "create") {
         const created = await createMutation.mutateAsync(payload);
-        toast.success(`Paciente ${created.full_name} registrado. Redirigiendo a asignación de turno...`);
-        router.push(`/dashboard/appointments/new?patient_id=${created.id}`);
+        if (created.temp_password) {
+          setCreatedPatient(created);
+        } else {
+          toast.success(`Paciente ${created.full_name} registrado.`);
+          router.push(`/dashboard/appointments/new?patient_id=${created.id}`);
+        }
       } else {
         await updateMutation.mutateAsync(payload);
         toast.success("Datos actualizados correctamente");
@@ -118,122 +194,134 @@ export function PatientForm({ mode, patient }: Props) {
     }
   };
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {/* Sección: Datos Personales */}
-      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Datos Personales</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <FormField label="Apellido" error={errors.last_name?.message} required>
-            <input {...register("last_name")} className={inputClass} placeholder="García" />
-          </FormField>
-          <FormField label="Nombre" error={errors.first_name?.message} required>
-            <input {...register("first_name")} className={inputClass} placeholder="María" />
-          </FormField>
-          <FormField label="DNI" error={errors.dni?.message} required>
-            <input {...register("dni")} className={inputClass} placeholder="30.123.456" />
-          </FormField>
-          <FormField label="Fecha de nacimiento" error={errors.birth_date?.message} required>
-            <input {...register("birth_date")} type="date" className={inputClass} />
-          </FormField>
-          <FormField label="Sexo" error={errors.sex?.message} required>
-            <select {...register("sex")} className={inputClass}>
-              <option value="M">Masculino</option>
-              <option value="F">Femenino</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </FormField>
-          <FormField label="Grupo sanguíneo" error={errors.blood_type?.message}>
-            <select {...register("blood_type")} className={inputClass}>
-              <option value="">— Sin definir —</option>
-              {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
-                <option key={bg} value={bg}>{bg}</option>
-              ))}
-            </select>
-          </FormField>
-        </div>
-      </section>
+  const handleDialogContinue = () => {
+    if (createdPatient) {
+      router.push(`/dashboard/appointments/new?patient_id=${createdPatient.id}`);
+    }
+  };
 
-      {/* Sección: Datos de Contacto */}
-      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Contacto</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <FormField label="Dirección" error={errors.address?.message}>
-              <input {...register("address")} className={inputClass} placeholder="Av. Corrientes 1234" />
+  return (
+    <>
+      {createdPatient && (
+        <TempPasswordDialog created={createdPatient} onContinue={handleDialogContinue} />
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        {/* Sección: Datos Personales */}
+        <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Datos Personales</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <FormField label="Apellido" error={errors.last_name?.message} required>
+              <input {...register("last_name")} className={inputClass} placeholder="García" />
+            </FormField>
+            <FormField label="Nombre" error={errors.first_name?.message} required>
+              <input {...register("first_name")} className={inputClass} placeholder="María" />
+            </FormField>
+            <FormField label="DNI" error={errors.dni?.message} required>
+              <input {...register("dni")} className={inputClass} placeholder="30.123.456" />
+            </FormField>
+            <FormField label="Fecha de nacimiento" error={errors.birth_date?.message} required>
+              <input {...register("birth_date")} type="date" className={inputClass} />
+            </FormField>
+            <FormField label="Sexo" error={errors.sex?.message} required>
+              <select {...register("sex")} className={inputClass}>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </FormField>
+            <FormField label="Grupo sanguíneo" error={errors.blood_type?.message}>
+              <select {...register("blood_type")} className={inputClass}>
+                <option value="">— Sin definir —</option>
+                {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
             </FormField>
           </div>
-          <FormField label="Ciudad" error={errors.city?.message}>
-            <input {...register("city")} className={inputClass} placeholder="Buenos Aires" />
-          </FormField>
-          <FormField label="Provincia" error={errors.province?.message}>
-            <input {...register("province")} className={inputClass} placeholder="Buenos Aires" />
-          </FormField>
-          <FormField label="Teléfono" error={errors.phone?.message}>
-            <input {...register("phone")} className={inputClass} placeholder="11-2233-4455" />
-          </FormField>
-          <FormField label="Teléfono alternativo" error={errors.phone_alt?.message}>
-            <input {...register("phone_alt")} className={inputClass} placeholder="11-6677-8899" />
-          </FormField>
-          <FormField label="Email" error={errors.email?.message}>
-            <input {...register("email")} type="email" className={inputClass} placeholder="paciente@email.com" />
-          </FormField>
-        </div>
-      </section>
+        </section>
 
-      {/* Sección: Contacto de Emergencia */}
-      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Contacto de Emergencia</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField label="Nombre" error={errors.emergency_contact_name?.message}>
-            <input {...register("emergency_contact_name")} className={inputClass} placeholder="Juan García" />
-          </FormField>
-          <FormField label="Teléfono" error={errors.emergency_contact_phone?.message}>
-            <input {...register("emergency_contact_phone")} className={inputClass} placeholder="11-1234-5678" />
-          </FormField>
-          <FormField label="Relación" error={errors.emergency_contact_relationship?.message}>
-            <input {...register("emergency_contact_relationship")} className={inputClass} placeholder="Hijo/a, cónyuge..." />
-          </FormField>
-        </div>
-      </section>
+        {/* Sección: Datos de Contacto */}
+        <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Contacto</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <FormField label="Dirección" error={errors.address?.message}>
+                <input {...register("address")} className={inputClass} placeholder="Av. Corrientes 1234" />
+              </FormField>
+            </div>
+            <FormField label="Ciudad" error={errors.city?.message}>
+              <input {...register("city")} className={inputClass} placeholder="Buenos Aires" />
+            </FormField>
+            <FormField label="Provincia" error={errors.province?.message}>
+              <input {...register("province")} className={inputClass} placeholder="Buenos Aires" />
+            </FormField>
+            <FormField label="Teléfono" error={errors.phone?.message}>
+              <input {...register("phone")} className={inputClass} placeholder="11-2233-4455" />
+            </FormField>
+            <FormField label="Teléfono alternativo" error={errors.phone_alt?.message}>
+              <input {...register("phone_alt")} className={inputClass} placeholder="11-6677-8899" />
+            </FormField>
+            <FormField label="Email" error={errors.email?.message}>
+              <input {...register("email")} type="email" className={inputClass} placeholder="paciente@email.com" />
+            </FormField>
+          </div>
+        </section>
 
-      {/* Sección: Cobertura Médica */}
-      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Cobertura Médica</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField label="Obra Social" error={errors.insurance_provider?.message}>
-            <input {...register("insurance_provider")} className={inputClass} placeholder="OSDE, PAMI, Swiss Medical..." />
-          </FormField>
-          <FormField label="Plan" error={errors.insurance_plan?.message}>
-            <input {...register("insurance_plan")} className={inputClass} placeholder="Plan 310, 410..." />
-          </FormField>
-          <FormField label="Número de afiliado" error={errors.insurance_number?.message}>
-            <input {...register("insurance_number")} className={inputClass} placeholder="0001234567" />
-          </FormField>
-        </div>
-      </section>
+        {/* Sección: Contacto de Emergencia */}
+        <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Contacto de Emergencia</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label="Nombre" error={errors.emergency_contact_name?.message}>
+              <input {...register("emergency_contact_name")} className={inputClass} placeholder="Juan García" />
+            </FormField>
+            <FormField label="Teléfono" error={errors.emergency_contact_phone?.message}>
+              <input {...register("emergency_contact_phone")} className={inputClass} placeholder="11-1234-5678" />
+            </FormField>
+            <FormField label="Relación" error={errors.emergency_contact_relationship?.message}>
+              <input {...register("emergency_contact_relationship")} className={inputClass} placeholder="Hijo/a, cónyuge..." />
+            </FormField>
+          </div>
+        </section>
 
-      {/* Botones */}
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="px-6 py-2.5 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSubmitting
-            ? "Guardando..."
-            : mode === "create"
-            ? "Registrar Paciente"
-            : "Guardar Cambios"}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
+        {/* Sección: Cobertura Médica */}
+        <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Cobertura Médica</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField label="Obra Social" error={errors.insurance_provider?.message}>
+              <input {...register("insurance_provider")} className={inputClass} placeholder="OSDE, PAMI, Swiss Medical..." />
+            </FormField>
+            <FormField label="Plan" error={errors.insurance_plan?.message}>
+              <input {...register("insurance_plan")} className={inputClass} placeholder="Plan 310, 410..." />
+            </FormField>
+            <FormField label="Número de afiliado" error={errors.insurance_number?.message}>
+              <input {...register("insurance_number")} className={inputClass} placeholder="0001234567" />
+            </FormField>
+          </div>
+        </section>
+
+        {/* Botones */}
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-6 py-2.5 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          >
+            {isSubmitting
+              ? "Guardando..."
+              : mode === "create"
+              ? "Registrar Paciente"
+              : "Guardar Cambios"}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </>
   );
 }

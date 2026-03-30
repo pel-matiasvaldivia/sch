@@ -9,14 +9,40 @@ import { useCreateUser, useUpdateUser } from "@/hooks/use-users";
 import { ALL_ROLES, ROLE_LABELS, type UserRead } from "@/types/users";
 import { useAuthStore } from "@/stores/auth-store";
 
-const schema = z.object({
-  full_name: z.string().min(2, "Mínimo 2 caracteres").max(255),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().max(20).optional().or(z.literal("")),
-  password: z.string().optional().or(z.literal("")),
-  is_active: z.boolean().optional(),
-  role_names: z.array(z.string()).min(1, "Asigná al menos un rol"),
-});
+const schema = z
+  .object({
+    full_name: z.string().min(2, "Mínimo 2 caracteres").max(255),
+    email: z.string().email("Email inválido").optional().or(z.literal("")),
+    phone: z.string().max(20).optional().or(z.literal("")),
+    password: z.string().optional().or(z.literal("")),
+    is_active: z.boolean().optional(),
+    role_names: z.array(z.string()).min(1, "Asigná al menos un rol"),
+    // Campos de paciente
+    first_name: z.string().max(100).optional().or(z.literal("")),
+    last_name: z.string().max(100).optional().or(z.literal("")),
+    dni: z.string().max(20).optional().or(z.literal("")),
+    birth_date: z.string().optional().or(z.literal("")),
+    sex: z.enum(["M", "F", "Otro"]).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role_names.includes("paciente")) {
+      if (!data.first_name || data.first_name.trim().length < 1) {
+        ctx.addIssue({ code: "custom", path: ["first_name"], message: "Requerido para rol paciente" });
+      }
+      if (!data.last_name || data.last_name.trim().length < 1) {
+        ctx.addIssue({ code: "custom", path: ["last_name"], message: "Requerido para rol paciente" });
+      }
+      if (!data.dni || data.dni.trim().length < 6) {
+        ctx.addIssue({ code: "custom", path: ["dni"], message: "DNI requerido para rol paciente" });
+      }
+      if (!data.birth_date) {
+        ctx.addIssue({ code: "custom", path: ["birth_date"], message: "Requerido para rol paciente" });
+      }
+      if (!data.sex) {
+        ctx.addIssue({ code: "custom", path: ["sex"], message: "Requerido para rol paciente" });
+      }
+    }
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -24,6 +50,9 @@ interface Props {
   mode: "create" | "edit";
   user?: UserRead;
 }
+
+const inputClass =
+  "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors";
 
 export function UserForm({ mode, user }: Props) {
   const router = useRouter();
@@ -63,6 +92,7 @@ export function UserForm({ mode, user }: Props) {
   });
 
   const selectedRoles = watch("role_names") ?? [];
+  const isPaciente = selectedRoles.includes("paciente");
 
   const toggleRole = (role: string) => {
     if (selectedRoles.includes(role)) {
@@ -111,6 +141,13 @@ export function UserForm({ mode, user }: Props) {
           phone: data.phone || undefined,
           password: data.password,
           role_names: data.role_names,
+          ...(isPaciente && {
+            first_name: data.first_name || undefined,
+            last_name: data.last_name || undefined,
+            dni: data.dni || undefined,
+            birth_date: data.birth_date || undefined,
+            sex: data.sex,
+          }),
         });
         toast.success("Usuario creado correctamente");
         router.push("/dashboard/users");
@@ -146,7 +183,7 @@ export function UserForm({ mode, user }: Props) {
           {...register("full_name")}
           type="text"
           placeholder="Ej: María García"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+          className={inputClass}
         />
         {errors.full_name && (
           <p className="text-xs text-red-600 mt-1">{errors.full_name.message}</p>
@@ -181,7 +218,7 @@ export function UserForm({ mode, user }: Props) {
           {...register("phone")}
           type="tel"
           placeholder="Ej: +54 9 11 1234-5678"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+          className={inputClass}
         />
       </div>
 
@@ -195,7 +232,7 @@ export function UserForm({ mode, user }: Props) {
             {...register("password")}
             type="password"
             placeholder="Mínimo 8 caracteres, 1 mayúscula, 1 número"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            className={inputClass}
           />
           <p className="text-xs text-gray-500 mt-1">
             La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.
@@ -246,6 +283,86 @@ export function UserForm({ mode, user }: Props) {
           <p className="text-xs text-red-600 mt-1">{errors.role_names.message}</p>
         )}
       </div>
+
+      {/* Campos de paciente — solo visibles si rol paciente está seleccionado y es creación */}
+      {isPaciente && !isEdit && (
+        <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 space-y-4">
+          <p className="text-sm font-medium text-blue-800">
+            Datos del paciente — requeridos para el rol Paciente
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Apellido <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("last_name")}
+                type="text"
+                placeholder="García"
+                className={inputClass}
+              />
+              {errors.last_name && (
+                <p className="text-xs text-red-600 mt-1">{errors.last_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nombre <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("first_name")}
+                type="text"
+                placeholder="María"
+                className={inputClass}
+              />
+              {errors.first_name && (
+                <p className="text-xs text-red-600 mt-1">{errors.first_name.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                DNI <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("dni")}
+                type="text"
+                placeholder="30.123.456"
+                className={inputClass}
+              />
+              {errors.dni && (
+                <p className="text-xs text-red-600 mt-1">{errors.dni.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de nacimiento <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("birth_date")}
+                type="date"
+                className={inputClass}
+              />
+              {errors.birth_date && (
+                <p className="text-xs text-red-600 mt-1">{errors.birth_date.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sexo <span className="text-red-500">*</span>
+              </label>
+              <select {...register("sex")} className={inputClass}>
+                <option value="">— Seleccionar —</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+                <option value="Otro">Otro</option>
+              </select>
+              {errors.sex && (
+                <p className="text-xs text-red-600 mt-1">{errors.sex.message}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Acciones */}
       <div className="flex gap-3 pt-2">

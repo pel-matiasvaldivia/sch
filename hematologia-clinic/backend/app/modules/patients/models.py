@@ -94,6 +94,11 @@ class Patient(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
         String(36), ForeignKey("users.id"), nullable=True
     )
 
+    # ─── FK al usuario del portal del paciente ───
+    user_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True, unique=True
+    )
+
     # ─── Quién creó el registro ───
     created_by_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True

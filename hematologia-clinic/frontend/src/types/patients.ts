@@ -22,9 +22,15 @@ export interface Patient {
   blood_type?: string;
   clinical_notes?: Record<string, unknown>;
   primary_doctor_id?: string;
+  user_id?: string;
   portal_access_enabled: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface PatientCreateResponse extends Patient {
+  temp_password?: string;
+  user_email?: string;
 }
 
 export interface PatientSummary {

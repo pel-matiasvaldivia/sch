@@ -6,6 +6,7 @@ import type {
   PaginatedPatients,
   Patient,
   PatientCreate,
+  PatientCreateResponse,
   PatientSearchResult,
   PatientUpdate,
 } from "@/types/patients";
@@ -59,8 +60,8 @@ export function useSearchPatients(query: string, limit = 20) {
 export function useCreatePatient() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: PatientCreate) => api.post<Patient>("/v1/patients/", data),
-
+    mutationFn: (data: PatientCreate) =>
+      api.post<PatientCreateResponse>("/v1/patients/", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
     },

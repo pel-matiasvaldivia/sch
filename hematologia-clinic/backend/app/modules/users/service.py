@@ -48,7 +48,47 @@ class UserService:
             self.db.add(user_role)
 
         await self.db.flush()
+
+        # Si el usuario es paciente, crear el registro de paciente vinculado
+        if "paciente" in data.role_names:
+            await self._create_linked_patient(user, data, created_by_id)
+
         return user
+
+    async def _create_linked_patient(
+        self, user: User, data: UserCreate, created_by_id: str
+    ) -> None:
+        """Crea un Patient vinculado al usuario recién creado."""
+        from app.modules.patients.models import Patient
+        from app.modules.patients.repository import PatientRepository
+
+        patient_repo = PatientRepository(self.db)
+
+        # Verificar que no exista ya un paciente con ese DNI
+        existing = await patient_repo.get_by_dni(data.dni)  # type: ignore[arg-type]
+        if existing:
+            # Vincular usuario existente al paciente
+            existing.user_id = user.id
+            await self.db.flush()
+            return
+
+        # Limpiar DNI
+        dni_clean = data.dni.replace(".", "").replace(" ", "").strip()  # type: ignore[union-attr]
+
+        patient = Patient(
+            first_name=data.first_name.strip(),  # type: ignore[union-attr]
+            last_name=data.last_name.strip(),  # type: ignore[union-attr]
+            dni=dni_clean,
+            birth_date=data.birth_date,
+            sex=data.sex,
+            email=data.email,
+            phone=data.phone,
+            clinical_notes={},
+            user_id=user.id,
+            created_by_id=created_by_id,
+        )
+        patient_repo.db.add(patient)
+        await self.db.flush()
 
     async def update_user(
         self, user_id: str, data: UserUpdate, current_user_id: str

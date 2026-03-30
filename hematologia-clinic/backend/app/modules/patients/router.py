@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.dependencies import get_current_user, require_roles
 from app.modules.patients.schemas import (
     PatientCreate,
+    PatientCreateResponse,
     PatientList,
     PatientRead,
     PatientSearchResult,
@@ -52,16 +53,21 @@ async def list_patients(
     return await service.list_patients(page, size, search, insurance_provider, doctor_id)
 
 
-@router.post("/", response_model=PatientRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PatientCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_patient(
     data: PatientCreate,
     db: DBDep,
     current_user=Depends(require_roles(*EDITOR_ROLES)),
 ):
-    """Registra un nuevo paciente. Genera número de HC automáticamente."""
+    """Registra un nuevo paciente. Genera número de HC y usuario 'paciente' automáticamente."""
     service = PatientService(db)
-    patient = await service.create_patient(data, created_by_id=current_user.id)
-    return PatientRead.model_validate(patient)
+    patient, temp_password = await service.create_patient(data, created_by_id=current_user.id)
+    user_email = patient.email or f"{patient.dni}@paciente.local"
+    response = PatientCreateResponse.model_validate(patient)
+    if temp_password:
+        response.temp_password = temp_password
+        response.user_email = user_email
+    return response
 
 
 @router.get("/{patient_id}", response_model=PatientRead)

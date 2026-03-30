@@ -26,6 +26,12 @@ export interface UserCreate {
   phone?: string;
   password: string;
   role_names: string[];
+  // Requeridos solo cuando role_names incluye "paciente"
+  first_name?: string;
+  last_name?: string;
+  dni?: string;
+  birth_date?: string;
+  sex?: "M" | "F" | "Otro";
 }
 
 export interface UserUpdate {
