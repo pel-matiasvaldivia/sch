@@ -1,6 +1,9 @@
 """Lógica de negocio para gestión de turnos."""
 import math
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+
+# Argentina no observa horario de verano — UTC-3 fijo
+AR_TZ = timezone(timedelta(hours=-3))
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,10 +67,11 @@ class AppointmentService:
             raise NotFoundError("Médico", data.doctor_id)
 
         # Verificar que el turno no está en el pasado
-        now = datetime.now(timezone.utc)
+        # Los datetimes sin zona horaria se interpretan como hora argentina (UTC-3)
         scheduled = data.scheduled_at
         if scheduled.tzinfo is None:
-            scheduled = scheduled.replace(tzinfo=timezone.utc)
+            scheduled = scheduled.replace(tzinfo=AR_TZ)
+        now = datetime.now(AR_TZ)
         if scheduled < now:
             raise ValidationError("No se puede crear un turno en el pasado")
 
@@ -112,8 +116,8 @@ class AppointmentService:
         if "scheduled_at" in update_data:
             scheduled = update_data["scheduled_at"]
             if scheduled.tzinfo is None:
-                scheduled = scheduled.replace(tzinfo=timezone.utc)
-            now = datetime.now(timezone.utc)
+                scheduled = scheduled.replace(tzinfo=AR_TZ)
+            now = datetime.now(AR_TZ)
             if scheduled < now:
                 raise ValidationError("No se puede reprogramar a una fecha pasada")
             update_data["scheduled_at"] = scheduled

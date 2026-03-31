@@ -1,8 +1,8 @@
 """Schemas Pydantic para el módulo de usuarios."""
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class RoleRead(BaseModel):
@@ -20,13 +20,6 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     role_names: List[str] = Field(default=["medico"])
 
-    # Campos requeridos solo cuando role_names incluye "paciente"
-    first_name: Optional[str] = Field(None, max_length=100)
-    last_name: Optional[str] = Field(None, max_length=100)
-    dni: Optional[str] = Field(None, max_length=20)
-    birth_date: Optional[date] = None
-    sex: Optional[str] = Field(None, pattern="^(M|F|Otro)$")
-
     @field_validator("password")
     @classmethod
     def password_strength(cls, v: str) -> str:
@@ -35,26 +28,6 @@ class UserCreate(BaseModel):
         if not any(c.isdigit() for c in v):
             raise ValueError("La contraseña debe tener al menos un número")
         return v
-
-    @model_validator(mode="after")
-    def validate_patient_fields(self) -> "UserCreate":
-        if "paciente" in (self.role_names or []):
-            missing = []
-            if not self.first_name:
-                missing.append("first_name")
-            if not self.last_name:
-                missing.append("last_name")
-            if not self.dni:
-                missing.append("dni")
-            if not self.birth_date:
-                missing.append("birth_date")
-            if not self.sex:
-                missing.append("sex")
-            if missing:
-                raise ValueError(
-                    f"Los siguientes campos son requeridos para el rol 'paciente': {', '.join(missing)}"
-                )
-        return self
 
 
 class UserUpdate(BaseModel):

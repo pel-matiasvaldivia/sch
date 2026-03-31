@@ -7,14 +7,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useCreateAppointment } from "@/hooks/use-appointments";
+import { useCreateAppointment, useUpdateAppointment } from "@/hooks/use-appointments";
 import { useSearchPatients, usePatient } from "@/hooks/use-patients";
 import { useUsers } from "@/hooks/use-users";
-import type { AppointmentCreate, AppointmentLocation, ServiceType } from "@/types/appointments";
+import type { Appointment, AppointmentCreate, AppointmentUpdate } from "@/types/appointments";
 
 const schema = z.object({
   patient_id: z.string().min(1, "Seleccioná un paciente"),
-  doctor_id: z.string().min(1, "Seleccioná un médico"),
+  doctor_id: z.string().min(1, "Seleccioná un profesional"),
   service_type: z.string().min(1, "Seleccioná el tipo de servicio"),
   scheduled_date: z.string().min(1, "Seleccioná la fecha"),
   scheduled_time: z.string().min(1, "Seleccioná la hora"),
@@ -27,10 +27,22 @@ type FormData = z.infer<typeof schema>;
 
 interface Props {
   defaultPatientId?: string;
+  mode?: "create" | "edit";
+  appointment?: Appointment;
 }
 
-export function AppointmentForm({ defaultPatientId }: Props) {
+function parseScheduledAt(isoString: string): { date: string; time: string } {
+  const d = new Date(isoString);
+  const date = d.toISOString().split("T")[0];
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return { date, time: `${hours}:${minutes}` };
+}
+
+export function AppointmentForm({ defaultPatientId, mode = "create", appointment }: Props) {
   const router = useRouter();
+  const isEdit = mode === "edit";
+
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatientName, setSelectedPatientName] = useState("");
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
@@ -39,7 +51,25 @@ export function AppointmentForm({ defaultPatientId }: Props) {
   const { data: defaultPatient } = usePatient(defaultPatientId || "");
   const { data: doctorsData } = useUsers({ role: "medico", size: 100 });
   const { data: techniciansData } = useUsers({ role: "tecnico", size: 100 });
+
   const createMutation = useCreateAppointment();
+  const updateMutation = useUpdateAppointment(appointment?.id ?? "");
+
+  const editDefaults = appointment
+    ? (() => {
+        const { date, time } = parseScheduledAt(appointment.scheduled_at);
+        return {
+          patient_id: appointment.patient.id,
+          doctor_id: appointment.doctor?.id ?? "",
+          service_type: appointment.service_type,
+          scheduled_date: date,
+          scheduled_time: time,
+          duration_minutes: appointment.duration_minutes,
+          location: appointment.location,
+          notes: appointment.notes ?? "",
+        };
+      })()
+    : undefined;
 
   const {
     register,
@@ -49,44 +79,62 @@ export function AppointmentForm({ defaultPatientId }: Props) {
     watch,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      patient_id: defaultPatientId ?? "",
-      duration_minutes: 30,
-      location: "clinica",
-      scheduled_time: "09:00",
-      service_type: "consulta_medica",
-    },
+    defaultValues: isEdit && editDefaults
+      ? editDefaults
+      : {
+          patient_id: defaultPatientId ?? "",
+          duration_minutes: 30,
+          location: "clinica",
+          scheduled_time: "09:00",
+          service_type: "consulta_medica",
+        },
   });
 
   const selectedServiceType = watch("service_type");
-
-  // Definición de tipos de servicio por rol profesional
-  const isMedicalService = ["consulta_medica", "hematologia"].includes(selectedServiceType);
   const isTechnicalService = ["laboratorio", "extraccion", "coagulacion", "puncion", "infusion"].includes(selectedServiceType);
+  const professionals = isTechnicalService ? (techniciansData?.items ?? []) : (doctorsData?.items ?? []);
+  const professionalLabel = isTechnicalService ? "Técnico" : "Médico";
 
   const onSubmit = async (data: FormData) => {
     try {
       const scheduled_at = `${data.scheduled_date}T${data.scheduled_time}:00`;
-      const { scheduled_date, scheduled_time, ...rest } = data;
-      await createMutation.mutateAsync({ ...rest, scheduled_at } as AppointmentCreate);
-      toast.success("Turno creado correctamente. Generando prestación enlazada...");
-      
-      const params = new URLSearchParams({
-        patient_id: data.patient_id,
-        service_type: data.service_type,
-        professional_id: data.doctor_id, // doctor_id es el campo genérico para el profesional en el turno
-      });
-      router.push(`/dashboard/services/new?${params.toString()}`);
+
+      if (isEdit) {
+        const payload: AppointmentUpdate = {
+          doctor_id: data.doctor_id,
+          service_type: data.service_type as AppointmentUpdate["service_type"],
+          scheduled_at,
+          duration_minutes: data.duration_minutes,
+          location: data.location as AppointmentUpdate["location"],
+          notes: data.notes,
+        };
+        await updateMutation.mutateAsync(payload);
+        toast.success("Turno actualizado correctamente");
+        router.push("/dashboard/appointments");
+      } else {
+        const { scheduled_date, scheduled_time, ...rest } = data;
+        await createMutation.mutateAsync({ ...rest, scheduled_at } as AppointmentCreate);
+        toast.success("Turno creado correctamente. Generando prestación enlazada...");
+        const params = new URLSearchParams({
+          patient_id: data.patient_id,
+          service_type: data.service_type,
+          professional_id: data.doctor_id,
+        });
+        router.push(`/dashboard/services/new?${params.toString()}`);
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al crear el turno");
+      toast.error(error instanceof Error ? error.message : `Error al ${isEdit ? "actualizar" : "crear"} el turno`);
     }
   };
 
-  const doctors = doctorsData?.items ?? [];
-  const technicians = techniciansData?.items ?? [];
-  const professionals = isTechnicalService ? technicians : doctors;
-  const professionalLabel = isTechnicalService ? "Técnico" : "Médico";
-  const professionalPlaceholder = isTechnicalService ? "Seleccioná un técnico" : "Seleccioná un médico";
+  const isPending = createMutation.isPending || updateMutation.isPending;
+  const patientDisplayValue = isEdit
+    ? `${appointment!.patient.full_name} — DNI ${appointment!.patient.dni}`
+    : defaultPatientId
+      ? defaultPatient
+        ? `${defaultPatient.full_name} — DNI ${defaultPatient.dni}`
+        : "Cargando paciente..."
+      : selectedPatientName || patientSearch;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
@@ -96,38 +144,34 @@ export function AppointmentForm({ defaultPatientId }: Props) {
           <label className="block text-sm font-medium text-gray-700">
             Paciente <span className="text-red-500">*</span>
           </label>
-          <Link
-            href="/dashboard/patients/new"
-            className="text-xs text-primary hover:underline flex items-center gap-1"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Paciente no registrado aún
-          </Link>
+          {!isEdit && (
+            <Link
+              href="/dashboard/patients/new"
+              className="text-xs text-primary hover:underline flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Paciente no registrado aún
+            </Link>
+          )}
         </div>
         <div className="relative">
           <input
             type="text"
-            value={
-              defaultPatientId
-                ? defaultPatient
-                  ? `${defaultPatient.full_name} — DNI ${defaultPatient.dni}`
-                  : "Cargando paciente vinculado..."
-                : selectedPatientName || patientSearch
-            }
+            value={patientDisplayValue}
             onChange={(e) => {
-              if (defaultPatientId) return;
+              if (isEdit || defaultPatientId) return;
               setPatientSearch(e.target.value);
               setSelectedPatientName("");
               setValue("patient_id", "");
               setShowPatientDropdown(true);
             }}
-            onFocus={() => !defaultPatientId && setShowPatientDropdown(true)}
-            disabled={!!defaultPatientId}
-            placeholder="Buscar por nombre o DNI (se pre-seleccionará si provienes de Alta)..."
+            onFocus={() => !isEdit && !defaultPatientId && setShowPatientDropdown(true)}
+            disabled={isEdit || !!defaultPatientId}
+            placeholder="Buscar por nombre o DNI..."
             className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary ${
-              defaultPatientId
+              isEdit || defaultPatientId
                 ? "border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
                 : "border-gray-300"
             }`}
@@ -200,7 +244,7 @@ export function AppointmentForm({ defaultPatientId }: Props) {
         </div>
       </div>
 
-      {/* Profesional (Médico o Técnico según servicio) */}
+      {/* Profesional */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {professionalLabel} <span className="text-red-500">*</span>
@@ -209,7 +253,7 @@ export function AppointmentForm({ defaultPatientId }: Props) {
           {...register("doctor_id")}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white"
         >
-          <option value="">{professionalPlaceholder}</option>
+          <option value="">Seleccioná un {professionalLabel.toLowerCase()}</option>
           {professionals.map((p) => (
             <option key={p.id} value={p.id}>
               {p.full_name}
@@ -225,7 +269,7 @@ export function AppointmentForm({ defaultPatientId }: Props) {
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Fecha (Mes/Día/Año) <span className="text-red-500">*</span>
+            Fecha <span className="text-red-500">*</span>
           </label>
           <input
             {...register("scheduled_date")}
@@ -239,7 +283,7 @@ export function AppointmentForm({ defaultPatientId }: Props) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Hora (HH:MM) <span className="text-red-500">*</span>
+            Hora <span className="text-red-500">*</span>
           </label>
           <input
             {...register("scheduled_time")}
@@ -272,9 +316,7 @@ export function AppointmentForm({ defaultPatientId }: Props) {
 
       {/* Notas */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Notas
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
         <textarea
           {...register("notes")}
           rows={3}
@@ -287,10 +329,10 @@ export function AppointmentForm({ defaultPatientId }: Props) {
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={isSubmitting || createMutation.isPending}
+          disabled={isSubmitting || isPending}
           className="px-6 py-2.5 bg-primary text-white rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {createMutation.isPending ? "Guardando..." : "Crear Turno"}
+          {isPending ? "Guardando..." : isEdit ? "Guardar Cambios" : "Crear Turno"}
         </button>
         <button
           type="button"

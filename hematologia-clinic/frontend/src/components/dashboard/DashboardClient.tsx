@@ -172,7 +172,7 @@ export function DashboardClient() {
             {stats.proximos_turnos.map((turno) => (
               <Link
                 key={turno.id}
-                href={`/dashboard/appointments/${turno.id}`}
+                href={`/dashboard/appointments/${turno.id}/edit`}
                 className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
               >
                 <span className="text-sm font-mono font-semibold text-gray-900 w-12 shrink-0">
