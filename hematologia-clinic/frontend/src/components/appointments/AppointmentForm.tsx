@@ -129,7 +129,9 @@ export function AppointmentForm({ defaultPatientId, mode = "create", appointment
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const patientDisplayValue = isEdit
-    ? `${appointment!.patient.full_name} — DNI ${appointment!.patient.dni}`
+    ? appointment?.patient
+      ? `${appointment.patient.full_name} — DNI ${appointment.patient.dni}`
+      : "Paciente"
     : defaultPatientId
       ? defaultPatient
         ? `${defaultPatient.full_name} — DNI ${defaultPatient.dni}`
