@@ -73,7 +73,7 @@ export default function EditAppointmentPage() {
         </button>
         <h1 className="text-xl font-semibold text-gray-900">Editar Turno</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Paciente: <span className="font-medium text-gray-700">{appointment.patient.full_name}</span>
+          Paciente: <span className="font-medium text-gray-700">{appointment.patient?.full_name ?? "—"}</span>
         </p>
       </div>
 
