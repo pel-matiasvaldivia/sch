@@ -59,7 +59,7 @@ export function AppointmentForm({ defaultPatientId, mode = "create", appointment
     ? (() => {
         const { date, time } = parseScheduledAt(appointment.scheduled_at);
         return {
-          patient_id: appointment.patient.id,
+          patient_id: appointment.patient?.id ?? appointment.patient_id,
           doctor_id: appointment.doctor?.id ?? "",
           service_type: appointment.service_type,
           scheduled_date: date,
