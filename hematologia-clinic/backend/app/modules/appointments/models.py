@@ -81,6 +81,10 @@ class Appointment(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # Recordatorio enviado
     reminder_sent: Mapped[bool] = mapped_column(default=False, nullable=False)
 
+    concluded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Relaciones
     patient: Mapped["Patient"] = relationship("Patient", back_populates="appointments")
     doctor: Mapped["User"] = relationship("User", foreign_keys=[doctor_id])

@@ -64,6 +64,7 @@ class AppointmentRead(BaseModel):
     cancellation_reason: Optional[str] = None
     extra_data: Optional[Dict[str, Any]] = None
     reminder_sent: bool
+    concluded_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

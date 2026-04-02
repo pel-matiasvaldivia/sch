@@ -47,6 +47,7 @@ export function useCreateReport() {
       api.post<Report>("/v1/reports/", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -59,6 +60,7 @@ export function useUpdateReport(id: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(reportKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -70,6 +72,7 @@ export function useSignReport(id: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(reportKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -81,6 +84,7 @@ export function useDeliverReport(id: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(reportKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -91,6 +95,7 @@ export function useDeleteReport() {
     mutationFn: (id: string) => api.delete(`/v1/reports/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -102,6 +107,7 @@ export function useCorrectReport(id: string) {
       api.post<Report>(`/v1/reports/${id}/correct`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reportKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }

@@ -25,6 +25,7 @@ from app.modules.users.repository import UserRepository
 ALLOWED_TRANSITIONS = {
     AppointmentStatus.PENDING: {
         AppointmentStatus.CONFIRMED,
+        AppointmentStatus.IN_PROGRESS,
         AppointmentStatus.CANCELLED,
         AppointmentStatus.ABSENT,
     },
@@ -155,6 +156,8 @@ class AppointmentService:
             raise ValidationError("Se requiere motivo de cancelación")
 
         appointment.status = new_status.value
+        if new_status == AppointmentStatus.CONCLUDED:
+            appointment.concluded_at = datetime.now(AR_TZ)
         if data.cancellation_reason:
             appointment.cancellation_reason = data.cancellation_reason
 

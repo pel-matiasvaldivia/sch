@@ -64,6 +64,7 @@ export function useCreatePatient() {
       api.post<PatientCreateResponse>("/v1/patients/", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -86,6 +87,7 @@ export function useDeletePatient() {
     mutationFn: (id: string) => api.delete(`/v1/patients/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: patientKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }

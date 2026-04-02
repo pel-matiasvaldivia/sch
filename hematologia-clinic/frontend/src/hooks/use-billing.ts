@@ -54,6 +54,7 @@ export function useCreateInvoice() {
       api.post<Invoice>("/v1/billing/invoices/", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: billingKeys.invoices() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -66,6 +67,7 @@ export function useUpdateInvoice(id: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(billingKeys.invoice(id), updated);
       queryClient.invalidateQueries({ queryKey: billingKeys.invoices() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -78,6 +80,7 @@ export function useRegisterPayment(invoiceId: string) {
     onSuccess: (updated) => {
       queryClient.setQueryData(billingKeys.invoice(invoiceId), updated);
       queryClient.invalidateQueries({ queryKey: billingKeys.invoices() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -110,6 +113,7 @@ export function useUpdateInsuranceOrder(id: string) {
     }>) => api.patch<InsuranceOrder>(`/v1/billing/insurance-orders/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: billingKeys.insuranceOrders() });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }

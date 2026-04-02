@@ -48,6 +48,7 @@ export interface Appointment {
   notes?: string;
   cancellation_reason?: string;
   reminder_sent: boolean;
+  concluded_at?: string;
   created_at: string;
   updated_at: string;
   patient?: PatientSummary;

@@ -49,6 +49,25 @@ export function useAppointmentsToday() {
   });
 }
 
+export function useMyQueue() {
+  return useQuery({
+    queryKey: [...appointmentKeys.all, "my-queue"] as const,
+    queryFn: () => api.get<AppointmentList>("/v1/appointments/my-queue"),
+    refetchInterval: 60_000,
+  });
+}
+
+export function usePatientHistory(patientId: string) {
+  return useQuery({
+    queryKey: [...appointmentKeys.all, "history", patientId] as const,
+    queryFn: () =>
+      api.get<AppointmentList>("/v1/appointments/", {
+        params: { patient_id: patientId, status: "concluido", size: "100", page: "1" },
+      }),
+    enabled: !!patientId,
+  });
+}
+
 export function useAppointment(id: string) {
   return useQuery({
     queryKey: appointmentKeys.detail(id),
@@ -65,6 +84,8 @@ export function useCreateAppointment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.today() });
+      queryClient.invalidateQueries({ queryKey: [...appointmentKeys.all, "my-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -78,6 +99,8 @@ export function useUpdateAppointment(id: string) {
       queryClient.setQueryData(appointmentKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.today() });
+      queryClient.invalidateQueries({ queryKey: [...appointmentKeys.all, "my-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -91,6 +114,8 @@ export function useUpdateAppointmentStatus(id: string) {
       queryClient.setQueryData(appointmentKeys.detail(id), updated);
       queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: appointmentKeys.today() });
+      queryClient.invalidateQueries({ queryKey: [...appointmentKeys.all, "my-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }
@@ -101,6 +126,7 @@ export function useDeleteAppointment() {
     mutationFn: (id: string) => api.delete(`/v1/appointments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
     },
   });
 }

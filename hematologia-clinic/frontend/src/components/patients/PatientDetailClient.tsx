@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePatient } from "@/hooks/use-patients";
 import { formatDate, formatDNI, calculateAge, SEX_LABELS } from "@/lib/utils";
 import { ServiceListClient } from "@/components/services/ServiceListClient";
+import { usePatientHistory } from "@/hooks/use-appointments";
+import { SERVICE_TYPE_LABELS, LOCATION_LABELS } from "@/types/appointments";
 
 interface Props {
   patientId: string;
@@ -22,6 +24,8 @@ function InfoItem({ label, value }: { label: string; value?: string | null }) {
 
 export function PatientDetailClient({ patientId }: Props) {
   const { data: patient, isLoading, error } = usePatient(patientId);
+  const { data: historyData } = usePatientHistory(patientId);
+  const history = historyData?.items ?? [];
 
   if (isLoading) {
     return (
@@ -151,6 +155,60 @@ export function PatientDetailClient({ patientId }: Props) {
           </Link>
         </div>
         <ServiceListClient patientId={patient.id} />
+      </div>
+
+      {/* Historial de Consultas */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">Historial de Consultas</h3>
+        {history.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            No hay consultas concluidas registradas
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {history.map((appt) => {
+              const startDate = new Date(appt.scheduled_at);
+              const endDate = appt.concluded_at ? new Date(appt.concluded_at) : null;
+              return (
+                <div key={appt.id} className="border border-gray-100 rounded-lg p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {startDate.toLocaleDateString("es-AR", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}
+                        </span>
+                        <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">
+                          {SERVICE_TYPE_LABELS[appt.service_type] ?? appt.service_type}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {LOCATION_LABELS[appt.location] ?? appt.location}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>
+                          Inicio: {startDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {endDate && (
+                          <span>
+                            Fin: {endDate.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                        {appt.doctor?.full_name && (
+                          <span>Dr./Dra. {appt.doctor.full_name}</span>
+                        )}
+                      </div>
+                      {appt.notes && (
+                        <p className="text-sm text-gray-700 mt-2 bg-gray-50 rounded p-2 border border-gray-100">
+                          {appt.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

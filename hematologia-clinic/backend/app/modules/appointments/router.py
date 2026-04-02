@@ -55,6 +55,16 @@ async def get_today_schedule(
     return await service.get_day_schedule(date.today(), doctor_id)
 
 
+@router.get("/my-queue", response_model=AppointmentList)
+async def get_my_queue(
+    db: DBDep,
+    current_user=Depends(require_roles("medico", "admin")),
+):
+    """Cola del día: turnos de hoy asignados al médico autenticado."""
+    service = AppointmentService(db)
+    return await service.get_day_schedule(date.today(), current_user.id)
+
+
 @router.get("/day", response_model=AppointmentList)
 async def get_day_schedule(
     db: DBDep,
