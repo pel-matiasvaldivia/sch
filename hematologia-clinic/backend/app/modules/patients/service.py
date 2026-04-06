@@ -124,6 +124,12 @@ class PatientService:
             raise NotFoundError("Paciente", patient_id)
         return patient
 
+    async def get_patient_by_user_id(self, user_id: str) -> Patient:
+        patient = await self.repo.get_by_user_id(user_id)
+        if not patient:
+            raise NotFoundError("Perfil de paciente", user_id)
+        return patient
+
     async def update_patient(self, patient_id: str, data: PatientUpdate) -> Patient:
         patient = await self.repo.get_by_id(patient_id)
         if not patient:

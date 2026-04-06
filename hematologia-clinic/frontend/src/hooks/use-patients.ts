@@ -81,6 +81,13 @@ export function useUpdatePatient(id: string) {
   });
 }
 
+export function useMyPatientProfile() {
+  return useQuery({
+    queryKey: [...patientKeys.all, "me"] as const,
+    queryFn: () => api.get<Patient>("/v1/patients/me"),
+  });
+}
+
 export function useDeletePatient() {
   const queryClient = useQueryClient();
   return useMutation({

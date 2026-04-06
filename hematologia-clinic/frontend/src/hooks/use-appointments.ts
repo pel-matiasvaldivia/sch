@@ -49,6 +49,14 @@ export function useAppointmentsToday() {
   });
 }
 
+export function useMyAppointments() {
+  return useQuery({
+    queryKey: [...appointmentKeys.all, "my-appointments"] as const,
+    queryFn: () => api.get<AppointmentList>("/v1/appointments/my-appointments"),
+    refetchInterval: 60_000,
+  });
+}
+
 export function useMyQueue() {
   return useQuery({
     queryKey: [...appointmentKeys.all, "my-queue"] as const,

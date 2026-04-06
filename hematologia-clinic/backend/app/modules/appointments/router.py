@@ -55,6 +55,18 @@ async def get_today_schedule(
     return await service.get_day_schedule(date.today(), doctor_id)
 
 
+@router.get("/my-appointments", response_model=AppointmentList)
+async def get_my_appointments(
+    db: DBDep,
+    current_user=Depends(require_roles("paciente")),
+):
+    """Turnos del paciente autenticado."""
+    from app.modules.patients.service import PatientService
+    patient = await PatientService(db).get_patient_by_user_id(current_user.id)
+    service = AppointmentService(db)
+    return await service.list_appointments(page=1, size=100, patient_id=patient.id)
+
+
 @router.get("/my-queue", response_model=AppointmentList)
 async def get_my_queue(
     db: DBDep,

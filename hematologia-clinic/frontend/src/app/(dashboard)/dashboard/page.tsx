@@ -10,7 +10,9 @@ export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   
   useEffect(() => {
-    if (user?.roles.includes("tecnico")) {
+    if (user?.roles.includes("paciente")) {
+      router.replace("/dashboard/portal/appointments");
+    } else if (user?.roles.includes("tecnico")) {
       router.replace("/dashboard/services/technician");
     }
   }, [user, router]);
@@ -22,8 +24,8 @@ export default function DashboardPage() {
     day: "numeric",
   });
 
-  // Si es técnico, no renderizamos el contenido mientras redirige
-  if (user?.roles.includes("tecnico")) return null;
+  // Si es paciente o técnico, no renderizamos el contenido mientras redirige
+  if (user?.roles.includes("paciente") || user?.roles.includes("tecnico")) return null;
 
   return (
     <div className="space-y-6">

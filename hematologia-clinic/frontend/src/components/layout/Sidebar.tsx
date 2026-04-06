@@ -67,7 +67,19 @@ const QueueIcon = () => (
 );
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Inicio", icon: <HomeIcon /> },
+  { href: "/dashboard", label: "Inicio", icon: <HomeIcon />, roles: ["admin", "medico", "administrativo", "tecnico"] },
+  {
+    href: "/dashboard/portal/appointments",
+    label: "Mis Turnos",
+    icon: <CalendarIcon />,
+    roles: ["paciente"],
+  },
+  {
+    href: "/dashboard/portal/history",
+    label: "Mi Historia Clínica",
+    icon: <DocumentIcon />,
+    roles: ["paciente"],
+  },
   {
     href: "/dashboard/queue",
     label: "Cola del día",

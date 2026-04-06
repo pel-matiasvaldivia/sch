@@ -101,6 +101,14 @@ class PatientRepository:
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_by_user_id(self, user_id: str) -> Optional[Patient]:
+        stmt = select(Patient).where(
+            Patient.user_id == user_id,
+            Patient.deleted_at.is_(None),
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def create(self, patient: Patient) -> Patient:
         self.db.add(patient)
         await self.db.flush()

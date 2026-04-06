@@ -26,6 +26,17 @@ VIEWER_ROLES = ("admin", "medico", "administrativo")
 EDITOR_ROLES = ("admin", "medico", "administrativo")
 
 
+@router.get("/me", response_model=PatientRead)
+async def get_my_patient_profile(
+    db: DBDep,
+    current_user=Depends(require_roles("paciente")),
+):
+    """Devuelve el perfil del paciente asociado al usuario autenticado."""
+    service = PatientService(db)
+    patient = await service.get_patient_by_user_id(current_user.id)
+    return PatientRead.model_validate(patient)
+
+
 @router.get("/search", response_model=PatientSearchResult)
 async def search_patients(
     db: DBDep,

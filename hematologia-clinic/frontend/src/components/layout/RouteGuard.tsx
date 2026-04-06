@@ -12,9 +12,27 @@ const ROUTE_PERMISSIONS: Array<{ path: string; roles: string[] }> = [
   { path: "/dashboard/services",     roles: ["admin", "medico", "tecnico", "administrativo"] },
   { path: "/dashboard/appointments", roles: ["admin", "medico", "administrativo"] },
   { path: "/dashboard/patients",     roles: ["admin", "medico", "administrativo"] },
+  { path: "/dashboard/queue",        roles: ["medico", "admin"] },
+  { path: "/dashboard/portal",       roles: ["paciente"] },
+];
+
+// Rutas bloqueadas para pacientes (todo excepto /portal y /profile)
+const PATIENT_BLOCKED_PREFIXES = [
+  "/dashboard/users",
+  "/dashboard/settings",
+  "/dashboard/billing",
+  "/dashboard/reports",
+  "/dashboard/services",
+  "/dashboard/appointments",
+  "/dashboard/patients",
+  "/dashboard/queue",
 ];
 
 function canAccess(pathname: string, userRoles: string[]): boolean {
+  const isPaciente = userRoles.includes("paciente");
+  if (isPaciente) {
+    return !PATIENT_BLOCKED_PREFIXES.some((p) => pathname.startsWith(p));
+  }
   const rule = ROUTE_PERMISSIONS.find((r) => pathname.startsWith(r.path));
   if (!rule) return true;
   return rule.roles.some((r) => userRoles.includes(r));
