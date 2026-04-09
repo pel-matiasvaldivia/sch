@@ -67,7 +67,7 @@ const QueueIcon = () => (
 );
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Inicio", icon: <HomeIcon />, roles: ["admin", "medico", "administrativo", "tecnico"] },
+  { href: "/dashboard", label: "Inicio", icon: <HomeIcon />, roles: ["admin", "administrativo", "tecnico"] },
   {
     href: "/dashboard/portal/appointments",
     label: "Mis Turnos",
@@ -96,13 +96,13 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard/appointments",
     label: "Turnos",
     icon: <CalendarIcon />,
-    roles: ["admin", "medico", "administrativo"],
+    roles: ["admin", "administrativo"],
   },
   {
     href: "/dashboard/services",
     label: "Prestaciones",
     icon: <FlaskIcon />,
-    roles: ["admin", "medico", "tecnico", "administrativo"],
+    roles: ["admin", "tecnico", "administrativo"],
   },
   {
     href: "/dashboard/reports",

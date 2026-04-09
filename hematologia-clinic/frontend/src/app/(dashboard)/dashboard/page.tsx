@@ -12,6 +12,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.roles.includes("paciente")) {
       router.replace("/dashboard/portal/appointments");
+    } else if (user?.roles.includes("medico")) {
+      router.replace("/dashboard/queue");
     } else if (user?.roles.includes("tecnico")) {
       router.replace("/dashboard/services/technician");
     }
@@ -24,8 +26,12 @@ export default function DashboardPage() {
     day: "numeric",
   });
 
-  // Si es paciente o técnico, no renderizamos el contenido mientras redirige
-  if (user?.roles.includes("paciente") || user?.roles.includes("tecnico")) return null;
+  // Redirigir roles con pantalla propia
+  if (
+    user?.roles.includes("paciente") ||
+    user?.roles.includes("medico") ||
+    user?.roles.includes("tecnico")
+  ) return null;
 
   return (
     <div className="space-y-6">
