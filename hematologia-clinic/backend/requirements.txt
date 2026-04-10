@@ -54,6 +54,10 @@ pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 factory-boy==3.3.1    # Factories para tests
 
+# ─── Transcripción de voz ───
+faster-whisper==1.1.1
+requests>=2.31.0
+
 # ─── Linting ───
 ruff==0.7.1
 mypy==1.13.0

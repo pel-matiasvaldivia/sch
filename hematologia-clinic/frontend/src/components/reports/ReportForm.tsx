@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCreateReport } from "@/hooks/use-reports";
 import { useSearchPatients } from "@/hooks/use-patients";
 import { REPORT_TYPE_LABELS } from "@/types/reports";
+import { useAuthStore } from "@/stores/auth-store";
+import { VoiceRecorder } from "@/components/ui/VoiceRecorder";
 
 interface Props {
   defaultPatientId?: string;
@@ -13,6 +15,8 @@ interface Props {
 export function ReportForm({ defaultPatientId }: Props) {
   const router = useRouter();
   const createReport = useCreateReport();
+  const user = useAuthStore((s) => s.user);
+  const canDictate = user?.roles.some((r) => ["medico", "admin"].includes(r)) ?? false;
 
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState(defaultPatientId ?? "");
@@ -103,14 +107,21 @@ export function ReportForm({ defaultPatientId }: Props) {
 
       {/* Contenido */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Contenido del informe
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Contenido del informe
+          </label>
+          {canDictate && (
+            <VoiceRecorder
+              onTranscript={(t) => setText((prev) => prev ? `${prev} ${t}` : t)}
+            />
+          )}
+        </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={10}
-          placeholder="Redactá el informe médico aquí..."
+          placeholder="Redactá o dictá el informe médico aquí..."
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-y"
         />
         <p className="text-xs text-gray-400 mt-1">

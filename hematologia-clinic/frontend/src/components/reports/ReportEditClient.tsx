@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReport, useUpdateReport } from "@/hooks/use-reports";
 import { REPORT_TYPE_LABELS } from "@/types/reports";
+import { useAuthStore } from "@/stores/auth-store";
+import { VoiceRecorder } from "@/components/ui/VoiceRecorder";
 
 interface Props {
   id: string;
@@ -13,6 +15,9 @@ export function ReportEditClient({ id }: Props) {
   const router = useRouter();
   const { data: report, isLoading } = useReport(id);
   const update = useUpdateReport(id);
+
+  const user = useAuthStore((s) => s.user);
+  const canDictate = user?.roles.some((r) => ["medico", "admin"].includes(r)) ?? false;
 
   const [reportType, setReportType] = useState("");
   const [text, setText] = useState("");
@@ -79,9 +84,16 @@ export function ReportEditClient({ id }: Props) {
 
       {/* Contenido */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Contenido del informe
-        </label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Contenido del informe
+          </label>
+          {canDictate && (
+            <VoiceRecorder
+              onTranscript={(t) => setText((prev) => prev ? `${prev} ${t}` : t)}
+            />
+          )}
+        </div>
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}

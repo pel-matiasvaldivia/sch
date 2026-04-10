@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
     libpq-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── Stage 2: Desarrollo ───
@@ -49,6 +50,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/.local /home/appuser/.local

@@ -151,7 +151,7 @@ function AppointmentCard({ appt }: { appt: Appointment }) {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Escribí observaciones, indicaciones o detalles de la consulta..."
+              placeholder="Escribí o dictá observaciones, indicaciones o detalles de la consulta..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-400 resize-none"
             />
             <button
