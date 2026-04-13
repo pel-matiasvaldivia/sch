@@ -33,14 +33,13 @@ EXPOSE 8000
 FROM base AS builder
 
 COPY requirements.txt .
-RUN pip install --user -r requirements.txt
+RUN pip install --prefix=/install -r requirements.txt
 
 # ─── Stage 4: Producción (imagen mínima) ───
 FROM python:3.12-slim AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/home/appuser/.local/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
 # Usuario no-root para seguridad
 RUN useradd -m -u 1001 appuser
@@ -53,7 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /root/.local /home/appuser/.local
+COPY --from=builder /install /usr/local
 COPY --chown=appuser:appuser . .
 
 USER appuser
