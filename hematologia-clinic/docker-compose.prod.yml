@@ -141,12 +141,9 @@ services:
     container_name: hema_nginx
     restart: always
     volumes:
-      - ./infra/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./infra/nginx/ssl:/etc/nginx/ssl:ro
-      - ./certbot_www:/var/www/certbot:ro
+      - ./infra/nginx/nginx.dev.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "8881:80"
-      - "4443:443"
+      - "80:80"
     networks:
       - backend-net
       - frontend-net
