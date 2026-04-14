@@ -48,15 +48,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Pre-descargar modelo Whisper para evitar timeout en primera transcripción
-ENV HF_HOME=/app/models
-RUN python -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')" \
-    && echo "✓ Modelo Whisper descargado"
-
 # Usuario no-root para seguridad
 RUN useradd -m -u 1001 appuser
+
+# Directorio para modelos Whisper (persistido via volumen en producción)
+RUN mkdir -p /app/models && chown -R appuser:appuser /app/models
+
 COPY --chown=appuser:appuser . .
-RUN chown -R appuser:appuser /app/models
 
 USER appuser
 EXPOSE 8000

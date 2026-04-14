@@ -88,6 +88,9 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       ELASTICSEARCH_URL: http://elasticsearch:9200
       MINIO_ENDPOINT: minio:9000
+      HF_HOME: /app/models
+    volumes:
+      - whisper_models:/app/models
     networks:
       - backend-net
     depends_on:
@@ -96,14 +99,15 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "alembic upgrade head &&
-             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4"
+      sh -c "python -c 'from faster_whisper import WhisperModel; WhisperModel(\"small\", device=\"cpu\", compute_type=\"int8\")' &&
+             alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
 
   # ─────────────────── ASYNC WORKER ───────────────────
   worker:
@@ -161,6 +165,7 @@ volumes:
   redis_data:
   elasticsearch_data:
   minio_data:
+  whisper_models:
 
 networks:
   backend-net:
