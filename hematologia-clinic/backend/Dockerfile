@@ -29,20 +29,13 @@ RUN pip install -r requirements.txt
 # El código se monta como volumen en desarrollo
 EXPOSE 8000
 
-# ─── Stage 3: Builder para producción ───
-FROM base AS builder
-
-COPY requirements.txt .
-RUN pip install --prefix=/install -r requirements.txt
-
-# ─── Stage 4: Producción (imagen mínima) ───
+# ─── Stage 3: Producción ───
 FROM python:3.12-slim AS production
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-# Usuario no-root para seguridad
-RUN useradd -m -u 1001 appuser
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
@@ -52,7 +45,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /install /usr/local
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Usuario no-root para seguridad
+RUN useradd -m -u 1001 appuser
 COPY --chown=appuser:appuser . .
 
 USER appuser
